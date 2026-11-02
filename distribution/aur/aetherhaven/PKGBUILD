@@ -1,0 +1,72 @@
+# Maintainer: AetherHaven Contributors
+pkgname=aetherhaven
+pkgver=2.0.1
+pkgrel=1
+pkgdesc="Next-generation open source Minecraft launcher (built from source)"
+arch=('x86_64')
+url="https://github.com/signal1165/AetherHaven"
+license=('GPL-3.0-only')
+depends=(
+  'fontconfig'
+  'freetype2'
+  'libglvnd'
+  'libxcursor'
+  'libxrandr'
+  'libxi'
+  'libxkbcommon'
+  'wayland'
+  'dbus'
+  'gtk3'
+  'libayatana-appindicator'
+)
+makedepends=(
+  'rust'
+  'cargo'
+  'cmake'
+  'clang'
+  'pkgconf'
+  'python'
+)
+provides=('aetherhaven')
+conflicts=('aetherhaven-bin')
+options=(
+  '!lto'
+  '!debug'
+)
+source=("$pkgname-$pkgver.tar.gz::${url}/archive/refs/tags/aetherhaven-${pkgver}.tar.gz")
+sha256sums=('SKIP')
+
+_srcdir="OneLauncher-aetherhaven-${pkgver}"
+
+prepare() {
+  cd "$srcdir/$_srcdir"
+  export CARGO_HOME="$srcdir/cargo-home"
+  cargo fetch --locked --target "$(rustc -vV | sed -n 's/host: //p')"
+}
+
+build() {
+  cd "$srcdir/$_srcdir"
+  export CARGO_HOME="$srcdir/cargo-home"
+  export RUSTUP_TOOLCHAIN=stable
+  export CARGO_TARGET_DIR=target
+  cargo build --release --frozen --bin aetherhaven_launcher
+}
+
+package() {
+  cd "$srcdir/$_srcdir"
+  local appdir="packages/aetherhaven_launcher"
+
+  install -Dm755 "target/release/aetherhaven_launcher" "$pkgdir/usr/bin/aetherhaven_launcher"
+  ln -s aetherhaven_launcher "$pkgdir/usr/bin/aetherhaven"
+
+  install -dm755 "$pkgdir/usr/share/applications"
+  sed -e 's|{{exec}}|aetherhaven_launcher|g' \
+      -e 's|{{icon}}|org.aetherhaven.AetherHaven|g' \
+      "$appdir/distribution/linux/org.aetherhaven.aetherhaven.template" \
+      > "$pkgdir/usr/share/applications/org.aetherhaven.AetherHaven.desktop"
+
+  install -Dm644 "$appdir/icons/32x32.png"    "$pkgdir/usr/share/icons/hicolor/32x32/apps/org.aetherhaven.AetherHaven.png"
+  install -Dm644 "$appdir/icons/128x128.png"  "$pkgdir/usr/share/icons/hicolor/128x128/apps/org.aetherhaven.AetherHaven.png"
+  install -Dm644 "$appdir/icons/128x128@2x.png" "$pkgdir/usr/share/icons/hicolor/256x256/apps/org.aetherhaven.AetherHaven.png"
+  install -Dm644 "$appdir/icons/512x512.png"  "$pkgdir/usr/share/icons/hicolor/512x512/apps/org.aetherhaven.AetherHaven.png"
+}

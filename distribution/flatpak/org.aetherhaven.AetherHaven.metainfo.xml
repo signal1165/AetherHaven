@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>org.aetherhaven.AetherHaven</id>
+  <name>AetherHaven</name>
+  <summary>Next-generation open source Minecraft launcher</summary>
+  <developer id="org.aetherhaven">
+    <name>AetherHaven Contributors</name>
+  </developer>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>GPL-3.0-only</project_license>
+  <description>
+    <p>AetherHaven is a next-generation open source Minecraft launcher by AetherHaven.</p>
+  </description>
+  <launchable type="desktop-id">org.aetherhaven.AetherHaven.desktop</launchable>
+  <url type="homepage">https://polyfrost.org/projects/aetherhaven</url>
+  <url type="bugtracker">https://github.com/signal1165/AetherHaven/issues</url>
+  <url type="vcs-browser">https://github.com/signal1165/AetherHaven</url>
+  <content_rating type="oars-1.1"/>
+  <provides>
+    <binary>aetherhaven_launcher</binary>
+  </provides>
+</component>

@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "id": "aetherhaven",
+  "version": "${version}",
+  "name": "AetherHaven Client",
+  "description": "AetherHaven in-game menu, HUD and client performance controls.",
+  "authors": ["AetherHaven"],
+  "contact": {
+    "homepage": "https://github.com/signal1165/AetherHaven"
+  },
+  "license": "MIT",
+  "environment": "client",
+  "entrypoints": {
+    "client": ["com.aetherhaven.client.AetherHavenClient"]
+  },
+  "depends": {
+    "fabricloader": ">=0.16.5",
+    "minecraft": "~1.21.1",
+    "java": ">=21",
+    "fabric-api": "*"
+  }
+}
