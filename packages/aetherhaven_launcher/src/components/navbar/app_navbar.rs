@@ -54,7 +54,6 @@ impl Component for Navbar {
                     .content(Content::Flex)
                     .cross_align(Alignment::Center)
                     .padding(Gaps::new_symmetric(0.0, NAVBAR_SIDE_PADDING_PX))
-                    .background(Color::from_argb(150, 7, 7, 9))
                     .offset_y(slide)
                     .opacity(eased)
                     .on_sized(move |event: Event<SizedEventData>| {

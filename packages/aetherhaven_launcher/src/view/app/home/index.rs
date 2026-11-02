@@ -3,7 +3,6 @@ use freya::prelude::*;
 use crate::components::{ActiveClusterPanel, RecentsRow};
 use crate::theme;
 use crate::theme::colors;
-use crate::ui::border_all_color;
 
 #[derive(PartialEq)]
 pub struct Home;
@@ -52,9 +51,6 @@ impl Component for Home {
                             .height(Size::fill())
                             .padding(Gaps::new(28., 30., 28., 30.))
                             .main_align(Alignment::Center)
-                            .background(Color::from_argb(170, 8, 10, 15))
-                            .corner_radius(CornerRadius::new_all(22.))
-                            .border(border_all_color(1., colors::component_border()))
                             .child(ActiveClusterPanel),
                     ),
             )
