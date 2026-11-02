@@ -469,13 +469,6 @@ impl Component for ParallaxArt {
             })
             .child(
                 rect()
-                    .expanded()
-                    .position(Position::new_absolute())
-                    .layer(Layer::Relative(1))
-                    .child(gradient_overlay_radial()),
-            )
-            .child(
-                rect()
                     .width(Size::fill())
                     .height(Size::fill())
                     .position(Position::new_absolute())
@@ -496,72 +489,6 @@ fn decode_background_image(bytes: &Bytes) -> Option<SkImage> {
     let data = unsafe { SkData::new_bytes(bytes) };
     let img = SkImage::from_encoded(data)?;
     Some(img.make_raster_image(None, None).unwrap_or(img))
-}
-
-const VIGNETTE_SPOTLIGHT_SHADER: &str = r#"
-uniform float2 iResolution;
-
-half4 main(float2 fragCoord) {
-    float2 uv = fragCoord / iResolution;
-
-    float2 center = float2(0.80, 0.45);
-    float2 distVec = uv - center;
-
-    float2 dir = normalize(distVec + float2(0.00001));
-
-    float leftScale = 1.8;
-    float rightScale = 4.5;
-    float scaleX = mix(leftScale, rightScale, smoothstep(-1.0, 1.0, dir.x));
-
-    float topScale = 2.2;
-    float bottomScale = 2.2;
-    float scaleY = mix(topScale, bottomScale, smoothstep(-1.0, 1.0, dir.y));
-
-    distVec.x *= scaleX;
-    distVec.y *= scaleY;
-
-    float dist = length(distVec);
-
-    float vignette = smoothstep(0.0, 1.2, dist);
-    vignette = pow(vignette, 1.3);
-
-    float maxDarkness = 0.8;
-    float alpha = vignette * maxDarkness;
-
-    return half4(0.0, 0.0, 0.0, alpha);
-}
-"#;
-
-fn gradient_overlay_radial() -> impl IntoElement {
-    let effect = use_hook(|| {
-        freya::engine::prelude::RuntimeEffect::make_for_shader(VIGNETTE_SPOTLIGHT_SHADER, None)
-            .expect("Failed to compile vignette shader")
-    });
-
-    rect()
-        .width(Size::fill())
-        .height(Size::fill())
-        .position(Position::new_absolute())
-        .background(ShaderFill::new(
-            VIGNETTE_SPOTLIGHT_SHADER,
-            effect,
-            move |effect, bounds| {
-                let w = bounds.width();
-                let h = bounds.height();
-
-                #[rustfmt::skip]
-                let uniforms: [f32; 2] = [w, h];
-
-                let bytes = unsafe {
-                    std::slice::from_raw_parts(
-                        uniforms.as_ptr() as *const u8,
-                        std::mem::size_of_val(&uniforms),
-                    )
-                };
-
-                effect.make_shader(freya::engine::prelude::Data::new_copy(bytes), &[], None)
-            },
-        ))
 }
 
 pub(crate) fn navigate_back(at_home: bool) {
