@@ -51,7 +51,7 @@ fn staging_path(dest: &Path) -> PathBuf {
 /// and every other pass over these folders skips dotfiles
 #[tracing::instrument(level = "debug")]
 pub async fn sweep_staging_files(dir: &Path) {
-    let Ok(mut entries) = polyio::read_dir(dir).await else {
+    let Ok(mut entries) = aetherio::read_dir(dir).await else {
         return;
     };
 
@@ -75,17 +75,17 @@ pub async fn sweep_staging_files(dir: &Path) {
 #[tracing::instrument(level = "debug")]
 pub async fn link_or_copy(src: &Path, dest: &Path) -> ContentResult<()> {
     if let Some(parent) = dest.parent() {
-        polyio::create_dir_all(parent).await?;
+        aetherio::create_dir_all(parent).await?;
     }
 
     let staging = staging_path(dest);
     remove_entry(&staging).await?;
 
-    if polyio::symlink_file(src, &staging).await.is_err() {
-        polyio::copy(src, &staging).await?;
+    if aetherio::symlink_file(src, &staging).await.is_err() {
+        aetherio::copy(src, &staging).await?;
     }
 
-    if let Err(err) = polyio::rename(&staging, dest).await {
+    if let Err(err) = aetherio::rename(&staging, dest).await {
         remove_entry(&staging).await.ok();
         return Err(err.into());
     }
@@ -94,11 +94,11 @@ pub async fn link_or_copy(src: &Path, dest: &Path) -> ContentResult<()> {
 }
 
 pub async fn remove_entry(path: &Path) -> ContentResult<()> {
-    if polyio::symlink_metadata(path).await.is_err() {
+    if aetherio::symlink_metadata(path).await.is_err() {
         return Ok(());
     }
 
-    polyio::remove_file(path).await?;
+    aetherio::remove_file(path).await?;
     Ok(())
 }
 
@@ -120,9 +120,9 @@ pub async fn drop_unmanaged_mod(
     }
 
     let path = dir.join(content_type.folder_name()).join(file_name);
-    let linked = polyio::sha1_file(&path)
+    let linked = aetherio::sha1_file(&path)
         .await
-        .is_ok_and(|disk| polyio::normalize_hash(&disk) == hash);
+        .is_ok_and(|disk| aetherio::normalize_hash(&disk) == hash);
     if linked && let Err(err) = remove_entry(&path).await {
         tracing::debug!(file = file_name, error = %err, "could not drop the unlinked mod from the cluster folder");
     }
@@ -248,7 +248,7 @@ pub async fn try_link_materialized(
         return LiveSync::Deferred;
     };
 
-    if !polyio::try_exists(&src).await.unwrap_or(false) {
+    if !aetherio::try_exists(&src).await.unwrap_or(false) {
         tracing::warn!(hash = %artifact.hash, "cached artifact missing; leaving it to the next launch");
         return LiveSync::Deferred;
     }
@@ -274,7 +274,7 @@ pub async fn try_link_materialized(
     };
 
     // Same rule as the unlink path: never write over a file we did not place
-    if !ours && polyio::symlink_metadata(&dest).await.is_ok() {
+    if !ours && aetherio::symlink_metadata(&dest).await.is_ok() {
         tracing::debug!(
             file = file_name,
             "a file we do not own already sits in the game folder; leaving it to the next launch"
@@ -351,22 +351,22 @@ mod tests {
 
     #[tokio::test]
     async fn a_stale_staging_file_is_swept() {
-        let root = polyio::testing::ScratchDir::new("sweep_staging");
+        let root = aetherio::testing::ScratchDir::new("sweep_staging");
         let dir = root.path();
-        polyio::create_dir_all(dir).await.unwrap();
+        aetherio::create_dir_all(dir).await.unwrap();
 
         let orphan = staging_path(&dir.join("pack.zip"));
-        polyio::write(&orphan, b"half a copy".as_slice())
+        aetherio::write(&orphan, b"half a copy".as_slice())
             .await
             .unwrap();
-        polyio::write(dir.join("keep.zip"), b"pack".as_slice())
+        aetherio::write(dir.join("keep.zip"), b"pack".as_slice())
             .await
             .unwrap();
 
         sweep_staging_files(dir).await;
 
-        assert!(polyio::symlink_metadata(&orphan).await.is_err());
-        assert!(polyio::symlink_metadata(dir.join("keep.zip")).await.is_ok());
+        assert!(aetherio::symlink_metadata(&orphan).await.is_err());
+        assert!(aetherio::symlink_metadata(dir.join("keep.zip")).await.is_ok());
 
         std::fs::remove_dir_all(root.path()).ok();
     }
@@ -374,24 +374,24 @@ mod tests {
     #[cfg(not(windows))]
     #[tokio::test]
     async fn remove_entry_clears_a_dangling_link() {
-        let root = polyio::testing::ScratchDir::new("dangling_link");
+        let root = aetherio::testing::ScratchDir::new("dangling_link");
         let dir = root.path();
-        polyio::create_dir_all(dir).await.unwrap();
+        aetherio::create_dir_all(dir).await.unwrap();
 
         let target = dir.join("target.jar");
         let link = dir.join("link.jar");
-        polyio::write(&target, b"jar".as_slice()).await.unwrap();
-        polyio::symlink_file(&target, &link).await.unwrap();
-        polyio::remove_file(&target).await.unwrap();
+        aetherio::write(&target, b"jar".as_slice()).await.unwrap();
+        aetherio::symlink_file(&target, &link).await.unwrap();
+        aetherio::remove_file(&target).await.unwrap();
 
         assert!(!link.exists(), "the link resolves to nothing");
         assert!(
-            polyio::symlink_metadata(&link).await.is_ok(),
+            aetherio::symlink_metadata(&link).await.is_ok(),
             "but the link itself is still there"
         );
 
         remove_entry(&link).await.unwrap();
-        assert!(polyio::symlink_metadata(&link).await.is_err());
+        assert!(aetherio::symlink_metadata(&link).await.is_err());
 
         std::fs::remove_dir_all(root.path()).ok();
     }
@@ -399,34 +399,34 @@ mod tests {
     #[cfg(windows)]
     #[tokio::test]
     async fn remove_entry_clears_a_hard_link() {
-        let root = polyio::testing::ScratchDir::new("hard_link");
+        let root = aetherio::testing::ScratchDir::new("hard_link");
         let dir = root.path();
-        polyio::create_dir_all(dir).await.unwrap();
+        aetherio::create_dir_all(dir).await.unwrap();
 
         let target = dir.join("target.jar");
         let link = dir.join("link.jar");
-        polyio::write(&target, b"jar".as_slice()).await.unwrap();
-        polyio::symlink_file(&target, &link).await.unwrap();
-        polyio::remove_file(&target).await.unwrap();
+        aetherio::write(&target, b"jar".as_slice()).await.unwrap();
+        aetherio::symlink_file(&target, &link).await.unwrap();
+        aetherio::remove_file(&target).await.unwrap();
 
         assert!(link.exists(), "the link is still holding the file");
 
         remove_entry(&link).await.unwrap();
-        assert!(polyio::symlink_metadata(&link).await.is_err());
+        assert!(aetherio::symlink_metadata(&link).await.is_err());
 
         std::fs::remove_dir_all(root.path()).ok();
     }
 
     #[tokio::test]
     async fn replacing_a_pack_leaves_only_the_pack() {
-        let root = polyio::testing::ScratchDir::new("atomic_replace");
+        let root = aetherio::testing::ScratchDir::new("atomic_replace");
         let dir = root.path();
-        polyio::create_dir_all(dir).await.unwrap();
+        aetherio::create_dir_all(dir).await.unwrap();
 
         let old = dir.join("old.zip");
         let new = dir.join("new.zip");
-        polyio::write(&old, b"old".as_slice()).await.unwrap();
-        polyio::write(&new, b"new".as_slice()).await.unwrap();
+        aetherio::write(&old, b"old".as_slice()).await.unwrap();
+        aetherio::write(&new, b"new".as_slice()).await.unwrap();
 
         let packs = dir.join("resourcepacks");
         let dest = packs.join("pack.zip");
@@ -434,10 +434,10 @@ mod tests {
         link_or_copy(&old, &dest).await.unwrap();
         link_or_copy(&new, &dest).await.unwrap();
 
-        assert_eq!(polyio::read_to_string(&dest).await.unwrap(), "new");
+        assert_eq!(aetherio::read_to_string(&dest).await.unwrap(), "new");
 
         let mut names = Vec::new();
-        let mut entries = polyio::read_dir(&packs).await.unwrap();
+        let mut entries = aetherio::read_dir(&packs).await.unwrap();
         while let Ok(Some(entry)) = entries.next_entry().await {
             names.push(entry.file_name().to_string_lossy().into_owned());
         }
@@ -450,22 +450,22 @@ mod tests {
     /// A crash between the write and the rename must not wedge the next attempt
     #[tokio::test]
     async fn a_stale_staging_file_is_cleared() {
-        let root = polyio::testing::ScratchDir::new("stale_staging");
+        let root = aetherio::testing::ScratchDir::new("stale_staging");
         let dir = root.path();
-        polyio::create_dir_all(dir).await.unwrap();
+        aetherio::create_dir_all(dir).await.unwrap();
 
         let src = dir.join("src.zip");
         let dest = dir.join("pack.zip");
-        polyio::write(&src, b"real".as_slice()).await.unwrap();
-        polyio::write(staging_path(&dest), b"junk".as_slice())
+        aetherio::write(&src, b"real".as_slice()).await.unwrap();
+        aetherio::write(staging_path(&dest), b"junk".as_slice())
             .await
             .unwrap();
 
         link_or_copy(&src, &dest).await.unwrap();
 
-        assert_eq!(polyio::read_to_string(&dest).await.unwrap(), "real");
+        assert_eq!(aetherio::read_to_string(&dest).await.unwrap(), "real");
         assert!(
-            polyio::symlink_metadata(staging_path(&dest)).await.is_err(),
+            aetherio::symlink_metadata(staging_path(&dest)).await.is_err(),
             "the staging file is consumed by the rename"
         );
 
@@ -474,8 +474,8 @@ mod tests {
 
     #[tokio::test]
     async fn remove_entry_is_fine_with_nothing_there() {
-        let root = polyio::testing::ScratchDir::new("remove_missing");
-        polyio::create_dir_all(root.path()).await.unwrap();
+        let root = aetherio::testing::ScratchDir::new("remove_missing");
+        aetherio::create_dir_all(root.path()).await.unwrap();
 
         remove_entry(&root.join("never_existed.jar")).await.unwrap();
 

@@ -336,13 +336,13 @@ async fn exported_icon(cluster: &Cluster) -> Option<ShareIcon> {
         else {
             continue;
         };
-        let Ok(meta) = polyio::stat(&path).await else {
+        let Ok(meta) = aetherio::stat(&path).await else {
             continue;
         };
         if !meta.is_file() || meta.len() > MAX_ICON_BYTES {
             continue;
         }
-        if let Ok(bytes) = polyio::read(&path).await {
+        if let Ok(bytes) = aetherio::read(&path).await {
             let extension = entry
                 .rsplit_once('.')
                 .map(|(_, ext)| ext.to_string())
@@ -580,9 +580,9 @@ async fn apply_shared_icon(
     let Some(icon) = modpacks::read_share_icon(&shared.archive_path, &shared.share).await else {
         return Ok(());
     };
-    let staging = polyio::tempdir().await?;
+    let staging = aetherio::tempdir().await?;
     let path = staging.dir_path().join(format!("cover.{}", icon.extension));
-    polyio::write(&path, &icon.bytes).await?;
+    aetherio::write(&path, &icon.bytes).await?;
     state
         .clusters
         .set_cover_from_file(cluster_id, &path)

@@ -16,7 +16,7 @@ use aetherhaven_common::domain::{ContentType, GameLoader, ProviderId};
 use aetherhaven_common::paths;
 use aetherhaven_common::version::parse_mc_version;
 use aetherhaven_content::packages::PackageStore;
-use polyio::sha1_file;
+use aetherio::sha1_file;
 
 const FILE_CONTENT_TYPES: [ContentType; 4] = [
     ContentType::Mod,
@@ -166,7 +166,7 @@ async fn index_cache_file(
         .file_name()
         .map(|n| n.to_string_lossy().into_owned())
         .unwrap_or_default();
-    let size = polyio::stat(file).await.ok().map(|m| m.len() as i64);
+    let size = aetherio::stat(file).await.ok().map(|m| m.len() as i64);
 
     artifact_dao::insert_artifact(
         pool,
@@ -304,7 +304,7 @@ async fn relink_cluster_files(
     for content_type in FILE_CONTENT_TYPES {
         let dir = cluster_root.join(content_type.folder_name());
 
-        if polyio::symlink_metadata(&dir)
+        if aetherio::symlink_metadata(&dir)
             .await
             .is_ok_and(|meta| meta.file_type().is_symlink())
         {
@@ -534,7 +534,7 @@ fn relative_launcher_path(launcher_dir: &Path, abs: &Path) -> String {
 
 async fn list_dir_names(dir: &Path) -> LauncherResult<Vec<String>> {
     let mut names = Vec::new();
-    let Ok(mut entries) = polyio::read_dir(dir).await else {
+    let Ok(mut entries) = aetherio::read_dir(dir).await else {
         return Ok(names);
     };
     while let Some(entry) = entries.next_entry().await? {
@@ -547,7 +547,7 @@ async fn list_dir_names(dir: &Path) -> LauncherResult<Vec<String>> {
 
 async fn list_files(dir: &Path) -> LauncherResult<Vec<PathBuf>> {
     let mut files = Vec::new();
-    let Ok(mut entries) = polyio::read_dir(dir).await else {
+    let Ok(mut entries) = aetherio::read_dir(dir).await else {
         return Ok(files);
     };
     while let Some(entry) = entries.next_entry().await? {

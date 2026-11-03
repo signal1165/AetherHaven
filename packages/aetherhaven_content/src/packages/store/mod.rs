@@ -34,7 +34,7 @@ use crate::ctx::ContentCtx;
 use crate::error::{ContentError, ContentResult};
 use aetherhaven_common::paths as common_paths;
 use aetherhaven_events::GroupedProgressChild;
-use polyio::{normalize_hash, sha1_file};
+use aetherio::{normalize_hash, sha1_file};
 use std::path::{Path, PathBuf};
 
 pub struct PackageStore;
@@ -600,11 +600,11 @@ pub async fn cache_local_file(
         &file_name,
     )?;
     if let Some(parent) = dest.parent() {
-        polyio::create_dir_all(parent).await?;
+        aetherio::create_dir_all(parent).await?;
     }
-    polyio::copy(path, &dest).await?;
+    aetherio::copy(path, &dest).await?;
 
-    let size = polyio::stat(&dest).await?.len();
+    let size = aetherio::stat(&dest).await?.len();
     let stored_path = relative_cache_path(&dest)?;
 
     artifact_dao::insert_artifact(
@@ -772,8 +772,8 @@ async fn store_local_icon(hash: &str, jar: &std::path::Path, entry: &str) -> Opt
     let name = format!("{hash}.{extension}");
 
     let dir = common_paths::local_icons_dir().ok()?;
-    polyio::create_dir_all(&dir).await.ok()?;
-    polyio::write(dir.join(&name), &bytes).await.ok()?;
+    aetherio::create_dir_all(&dir).await.ok()?;
+    aetherio::write(dir.join(&name), &bytes).await.ok()?;
 
     Some(format!("{}{name}", common_paths::LOCAL_IMAGE_SCHEME))
 }

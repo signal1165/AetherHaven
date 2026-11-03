@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 
-use crate::{IOError, PolyIOResult};
+use crate::{IOError, AetherIOResult};
 
 pub fn env_path(name: &str) -> Option<PathBuf> {
     std::env::var_os(name).map(PathBuf::from)
@@ -8,7 +8,7 @@ pub fn env_path(name: &str) -> Option<PathBuf> {
 
 /// Like [`std::fs::canonicalize`] but on Windows emits the most compatible
 /// path form instead of UNC
-pub fn canonicalize(path: impl AsRef<std::path::Path>) -> PolyIOResult<PathBuf> {
+pub fn canonicalize(path: impl AsRef<std::path::Path>) -> AetherIOResult<PathBuf> {
     let path = path.as_ref();
     dunce::canonicalize(path).map_err(|e| IOError::PathIOError {
         source: e,

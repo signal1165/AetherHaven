@@ -1,6 +1,6 @@
 [package]
 name = "aetherhaven_content"
-description = "Mod providers, the artifact store, and Polyfrost bundles"
+description = "Mod providers, the artifact store, and AetherHaven bundles"
 version.workspace = true
 license.workspace = true
 edition.workspace = true
@@ -18,7 +18,7 @@ aetherhaven_common.workspace = true
 aetherhaven_db.workspace = true
 aetherhaven_events.workspace = true
 aetherhaven_net.workspace = true
-polyio.workspace = true
+aetherio.workspace = true
 
 async-trait.workspace = true
 async_zip.workspace = true
@@ -42,4 +42,4 @@ uuid.workspace = true
 
 [dev-dependencies]
 tokio = { workspace = true }
-polyio = { workspace = true, features = ["testing"] }
+aetherio = { workspace = true, features = ["testing"] }

@@ -1,5 +1,5 @@
 name: Bug report
-description: Create a report to help us improve Polyfrost. Include screenshots if possible.
+description: Create a report to help us improve AetherHaven. Include screenshots if possible.
 labels: [bug]
 body:
   - type: markdown
@@ -19,7 +19,7 @@ body:
       options:
         - Core
         - AetherHaven
-        - OneLauncher
+        - AetherHaven Launcher
   - type: textarea
     attributes:
       label: Describe the bug

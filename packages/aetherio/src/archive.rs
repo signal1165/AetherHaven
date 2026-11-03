@@ -7,21 +7,21 @@ use async_zip::spec::constructs::CDR;
 use futures_lite::{AsyncBufRead, AsyncSeek};
 use tokio_util::compat::{Compat, TokioAsyncReadCompatExt, TokioAsyncWriteCompatExt};
 
-use crate::{IOError, PolyIOResult};
+use crate::{IOError, AetherIOResult};
 
 type FileZipReader = ZipArchiveReader<Compat<tokio::io::BufReader<tokio::fs::File>>>;
 
 async fn open_zip<R: AsyncBufRead + AsyncSeek + Unpin>(
     reader: R,
-) -> PolyIOResult<ZipArchiveReader<R>> {
+) -> AetherIOResult<ZipArchiveReader<R>> {
     Ok(ZipArchiveReader::open_with_options(reader, ZipOptions::untrusted()).await?)
 }
 
-async fn open_zip_file(zip_path: &Path) -> PolyIOResult<FileZipReader> {
+async fn open_zip_file(zip_path: &Path) -> AetherIOResult<FileZipReader> {
     open_zip_file_with(zip_path, ZipOptions::untrusted()).await
 }
 
-async fn open_large_zip_file(zip_path: &Path) -> PolyIOResult<FileZipReader> {
+async fn open_large_zip_file(zip_path: &Path) -> AetherIOResult<FileZipReader> {
     let options = ZipOptions {
         max_uncompressed_size_per_file: u64::MAX,
         max_compressed_size_per_file: u64::MAX,
@@ -33,7 +33,7 @@ async fn open_large_zip_file(zip_path: &Path) -> PolyIOResult<FileZipReader> {
     open_zip_file_with(zip_path, options).await
 }
 
-async fn open_zip_file_with(zip_path: &Path, options: ZipOptions) -> PolyIOResult<FileZipReader> {
+async fn open_zip_file_with(zip_path: &Path, options: ZipOptions) -> AetherIOResult<FileZipReader> {
     let file = tokio::fs::File::open(zip_path).await?;
     Ok(
         ZipArchiveReader::open_with_options(tokio::io::BufReader::new(file).compat(), options)
@@ -59,7 +59,7 @@ fn unix_permissions(cdr: &CDR) -> Option<u32> {
 pub async fn unzip_bytes(
     data: Vec<u8>,
     dest_path: impl AsRef<std::path::Path>,
-) -> PolyIOResult<()> {
+) -> AetherIOResult<()> {
     unzip_bytes_filtered(data, None::<fn(&str) -> bool>, dest_path).await
 }
 
@@ -74,7 +74,7 @@ pub async fn unzip_bytes_filtered(
     data: Vec<u8>,
     filter_entries: Option<impl Fn(&str) -> bool + Send + Sync>,
     dest_path: impl AsRef<std::path::Path>,
-) -> PolyIOResult<()> {
+) -> AetherIOResult<()> {
     let reader = open_zip(futures_lite::io::Cursor::new(data)).await?;
 
     extract_entries(
@@ -98,7 +98,7 @@ pub async fn unzip_bytes_filtered(
 pub async fn extract_zip(
     zip_path: impl AsRef<std::path::Path>,
     dest_path: impl AsRef<std::path::Path>,
-) -> PolyIOResult<()> {
+) -> AetherIOResult<()> {
     let zip_path = zip_path.as_ref().to_path_buf();
     let dest_path = dest_path.as_ref().to_path_buf();
 
@@ -117,10 +117,10 @@ pub async fn extract_zip(
 /// Inflating an archive is CPU work sitting between short async writes, and
 /// installs are driven from freya's UI-thread executor, so a large extraction
 /// run inline stalls rendering for as long as it takes
-async fn off_caller_thread<F, Fut>(work: F) -> PolyIOResult<()>
+async fn off_caller_thread<F, Fut>(work: F) -> AetherIOResult<()>
 where
     F: FnOnce() -> Fut + Send + 'static,
-    Fut: std::future::Future<Output = PolyIOResult<()>>,
+    Fut: std::future::Future<Output = AetherIOResult<()>>,
 {
     let handle = tokio::runtime::Handle::current();
 
@@ -142,7 +142,7 @@ pub async fn extract_zip_filtered(
     dest_path: impl AsRef<std::path::Path>,
     filter_entries: Option<impl Fn(&str) -> bool + Send + Sync>,
     modify_entry_name: Option<impl Fn(&str) -> String>,
-) -> PolyIOResult<()> {
+) -> AetherIOResult<()> {
     let reader = open_zip_file(zip_path.as_ref()).await?;
 
     extract_entries(
@@ -158,7 +158,7 @@ pub async fn extract_zip_filtered(
 pub async fn zip_uncompressed_size(
     zip_path: impl AsRef<std::path::Path>,
     filter: impl Fn(&str) -> bool,
-) -> PolyIOResult<u64> {
+) -> AetherIOResult<u64> {
     let reader = open_large_zip_file(zip_path.as_ref()).await?;
     let mut total = 0u64;
     for cdr in reader.cdrs() {
@@ -174,7 +174,7 @@ pub async fn extract_zip_limited(
     dest_path: impl AsRef<std::path::Path>,
     max_bytes: u64,
     filter: impl Fn(&str) -> bool + Send + Sync + 'static,
-) -> PolyIOResult<()> {
+) -> AetherIOResult<()> {
     let zip_path = zip_path.as_ref().to_path_buf();
     let dest_path = dest_path.as_ref().to_path_buf();
 
@@ -198,7 +198,7 @@ async fn extract_entries<R: AsyncBufRead + AsyncSeek + Unpin>(
     filter_entries: Option<impl Fn(&str) -> bool>,
     modify_entry_name: Option<impl Fn(&str) -> String>,
     max_bytes: Option<u64>,
-) -> PolyIOResult<()> {
+) -> AetherIOResult<()> {
     let inner = reader.inner().clone();
     let mut written = 0u64;
 
@@ -273,7 +273,7 @@ pub const MAX_ZIP_ENTRY_BYTES: u64 = 16 * 1024 * 1024;
 pub async fn read_zip_file_entries(
     zip_path: impl AsRef<std::path::Path>,
     filter: impl Fn(&str) -> bool,
-) -> PolyIOResult<Vec<(String, Vec<u8>)>> {
+) -> AetherIOResult<Vec<(String, Vec<u8>)>> {
     let zip_path = zip_path.as_ref();
     let mut reader = open_large_zip_file(zip_path).await?;
     let inner = reader.inner().clone();
@@ -323,7 +323,7 @@ pub async fn read_zip_file_entries(
 pub async fn read_zip_bytes_entry<K: Ord>(
     data: Vec<u8>,
     rank: impl Fn(&str) -> Option<K>,
-) -> PolyIOResult<Option<(String, Vec<u8>)>> {
+) -> AetherIOResult<Option<(String, Vec<u8>)>> {
     let mut reader = open_zip(futures_lite::io::Cursor::new(data)).await?;
     let mut candidates: Vec<(K, String, usize, u64)> = Vec::new();
     for (index, cdr) in reader.cdrs().iter().enumerate() {
@@ -360,7 +360,7 @@ pub async fn read_zip_bytes_entry<K: Ord>(
 }
 
 /// Entries over [`MAX_ZIP_ENTRY_BYTES`] are skipped
-pub async fn read_zip_bytes_entries(data: Vec<u8>) -> PolyIOResult<Vec<(String, Vec<u8>)>> {
+pub async fn read_zip_bytes_entries(data: Vec<u8>) -> AetherIOResult<Vec<(String, Vec<u8>)>> {
     let mut reader = open_zip(futures_lite::io::Cursor::new(data)).await?;
     let mut entries: Vec<(String, usize)> = Vec::new();
     for (index, cdr) in reader.cdrs().iter().enumerate() {
@@ -403,7 +403,7 @@ impl ZipEntryCursor {
     pub async fn open(
         zip_path: impl AsRef<std::path::Path>,
         filter: impl Fn(&str) -> bool,
-    ) -> PolyIOResult<Self> {
+    ) -> AetherIOResult<Self> {
         let reader = open_zip_file(zip_path.as_ref()).await?;
 
         let mut indices = std::collections::HashMap::new();
@@ -430,7 +430,7 @@ impl ZipEntryCursor {
         self.reader.cdrs()[index].uncompressed_size().ok()
     }
 
-    pub async fn read(&mut self, name: &str) -> PolyIOResult<Vec<u8>> {
+    pub async fn read(&mut self, name: &str) -> AetherIOResult<Vec<u8>> {
         let index = *self
             .indices
             .get(name)
@@ -468,7 +468,7 @@ impl ZipEntryCursor {
     skip(zip_path),
     fields(zip_path = %zip_path.as_ref().display())
 )]
-pub async fn zip_entry_names(zip_path: impl AsRef<std::path::Path>) -> PolyIOResult<Vec<String>> {
+pub async fn zip_entry_names(zip_path: impl AsRef<std::path::Path>) -> AetherIOResult<Vec<String>> {
     let reader = open_large_zip_file(zip_path.as_ref()).await?;
 
     Ok(reader
@@ -480,7 +480,7 @@ pub async fn zip_entry_names(zip_path: impl AsRef<std::path::Path>) -> PolyIORes
 
 /// Returns a zip file entry's bytes without reading the entire file into memory
 #[tracing::instrument(level = "debug", skip(reader))]
-pub async fn try_read_zip_entry_bytes<R>(reader: R, file_name: &str) -> PolyIOResult<Vec<u8>>
+pub async fn try_read_zip_entry_bytes<R>(reader: R, file_name: &str) -> AetherIOResult<Vec<u8>>
 where
     R: tokio::io::AsyncRead + tokio::io::AsyncBufRead + tokio::io::AsyncSeek + Unpin,
 {
@@ -523,7 +523,7 @@ where
 pub async fn extract_tar_gz(
     archive: impl AsRef<std::path::Path>,
     dest: impl AsRef<std::path::Path>,
-) -> PolyIOResult<()> {
+) -> AetherIOResult<()> {
     let archive = archive.as_ref().to_path_buf();
     let dest = dest.as_ref().to_path_buf();
 
@@ -550,7 +550,7 @@ mod tests {
 
     #[tokio::test]
     async fn an_oversized_entry_is_refused_instead_of_read() {
-        let dir = std::env::temp_dir().join(format!("polyio-entry-cap-{}", std::process::id()));
+        let dir = std::env::temp_dir().join(format!("aetherio-entry-cap-{}", std::process::id()));
         std::fs::create_dir_all(&dir).unwrap();
         let path = dir.join("bomb.zip");
 
@@ -593,7 +593,7 @@ mod limit_tests {
 
     #[tokio::test]
     async fn extraction_stops_at_the_limit() {
-        let dir = std::env::temp_dir().join(format!("polyio-extract-limit-{}", std::process::id()));
+        let dir = std::env::temp_dir().join(format!("aetherio-extract-limit-{}", std::process::id()));
         std::fs::create_dir_all(&dir).unwrap();
         let zip = dir.join("archive.zip");
 

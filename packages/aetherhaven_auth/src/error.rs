@@ -115,7 +115,7 @@ pub enum AuthError {
     Minecraft(#[from] MinecraftAuthError),
 
     #[error(transparent)]
-    Io(#[from] polyio::IOError),
+    Io(#[from] aetherio::IOError),
 
     #[error(transparent)]
     Paths(#[from] aetherhaven_common::PathsError),

@@ -95,7 +95,7 @@ pub async fn read_meta_from_archive(path: &Path) -> ContentResult<PolyMrpackMeta
 pub async fn read_manifest_from_archive(path: &Path) -> ContentResult<BundleManifest> {
     let file = tokio::fs::File::open(path).await?;
     let reader = tokio::io::BufReader::new(file);
-    let manifest_bytes = polyio::try_read_zip_entry_bytes(reader, "modrinth.index.json").await?;
+    let manifest_bytes = aetherio::try_read_zip_entry_bytes(reader, "modrinth.index.json").await?;
     parse_manifest_bytes(&manifest_bytes)
 }
 

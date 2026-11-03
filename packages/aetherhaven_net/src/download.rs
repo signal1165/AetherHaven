@@ -1,7 +1,7 @@
 use std::path::Path;
 
 use aetherhaven_events::{EventBus, GroupedProgressChild, TaskPhase};
-use polyio::{Checksum, ChecksumStream, normalize_hash};
+use aetherio::{Checksum, ChecksumStream, normalize_hash};
 use reqwest::Method;
 
 use crate::error::RequestError;
@@ -34,7 +34,7 @@ pub async fn matches_on_disk(path: &Path, expected_sha1: &str) -> bool {
         return false;
     }
 
-    match polyio::sha1_file(path).await {
+    match aetherio::sha1_file(path).await {
         Ok(actual) => normalize_hash(&actual) == normalize_hash(expected_sha1),
         Err(err) => {
             tracing::debug!("could not hash {}: {err}", path.display());
@@ -60,7 +60,7 @@ pub async fn download_verified(
     if let Some(parent) = dest.parent()
         && !parent.is_dir()
     {
-        polyio::create_dir_all(parent).await?;
+        aetherio::create_dir_all(parent).await?;
     }
 
     // Needs a fixed id up front or each retry opens a new UI entry
@@ -158,7 +158,7 @@ async fn download_attempt(
         });
         let stream = std::pin::pin!(stream);
         // Writes to a scratch sibling and renames so `dest` is never truncated
-        polyio::write_stream(dest, stream, Some(total)).await?;
+        aetherio::write_stream(dest, stream, Some(total)).await?;
     }
 
     if let (Some(expected), Some(hasher)) = (expected, hasher) {
@@ -169,7 +169,7 @@ async fn download_attempt(
         let actual = hasher.finish();
         if !expected.matches(&actual) {
             // Remove it rather than leave it for the next `exists()` check
-            let _ = polyio::remove_file(dest).await;
+            let _ = aetherio::remove_file(dest).await;
             return Err(RequestError::HashMismatch {
                 source_desc: dest.display().to_string(),
                 expected: format!("{} {}", expected.algorithm.name(), expected.hex),
@@ -180,7 +180,7 @@ async fn download_attempt(
         && received != declared
     {
         // With no hash the byte count is the only evidence the transfer finished
-        let _ = polyio::remove_file(dest).await;
+        let _ = aetherio::remove_file(dest).await;
         return Err(RequestError::IncompleteBody {
             source_desc: dest.display().to_string(),
             expected: declared,
@@ -218,7 +218,7 @@ pub async fn fetch_verified(
         child.set_phase(TaskPhase::Verifying);
     }
 
-    let actual = polyio::sha1_bytes(&bytes);
+    let actual = aetherio::sha1_bytes(&bytes);
     if normalize_hash(&actual) != normalize_hash(expected_sha1) {
         return Err(RequestError::HashMismatch {
             source_desc: url.to_string(),

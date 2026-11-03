@@ -8,7 +8,7 @@ use std::{
 use async_tempfile::{TempDir, TempFile};
 use serde::{Serialize, de::DeserializeOwned};
 
-use crate::{IOError, PolyIOResult};
+use crate::{IOError, AetherIOResult};
 
 /// HTTP chunks already arrive at ~16 KiB
 const MIN_WRITE_BUFFER: usize = 16 * 1024;
@@ -30,7 +30,7 @@ fn write_buffer_size(size_hint: Option<u64>) -> usize {
     skip(path),
     fields(path = %path.as_ref().display())
 )]
-pub async fn read_dir(path: impl AsRef<std::path::Path>) -> PolyIOResult<tokio::fs::ReadDir> {
+pub async fn read_dir(path: impl AsRef<std::path::Path>) -> AetherIOResult<tokio::fs::ReadDir> {
     let path = path.as_ref();
 
     tokio::fs::read_dir(path)
@@ -46,7 +46,7 @@ pub async fn read_dir(path: impl AsRef<std::path::Path>) -> PolyIOResult<tokio::
     skip(path),
     fields(path = %path.as_ref().display())
 )]
-pub async fn create_dir(path: impl AsRef<std::path::Path>) -> PolyIOResult<()> {
+pub async fn create_dir(path: impl AsRef<std::path::Path>) -> AetherIOResult<()> {
     let path = path.as_ref();
     if path.exists() {
         return Ok(());
@@ -65,7 +65,7 @@ pub async fn create_dir(path: impl AsRef<std::path::Path>) -> PolyIOResult<()> {
     skip(path),
     fields(path = %path.as_ref().display())
 )]
-pub async fn create_dir_all(path: impl AsRef<std::path::Path>) -> PolyIOResult<()> {
+pub async fn create_dir_all(path: impl AsRef<std::path::Path>) -> AetherIOResult<()> {
     let path = path.as_ref();
     tokio::fs::create_dir_all(path)
         .await
@@ -80,7 +80,7 @@ pub async fn create_dir_all(path: impl AsRef<std::path::Path>) -> PolyIOResult<(
     skip(path),
     fields(path = %path.as_ref().display())
 )]
-pub async fn remove_dir_all(path: impl AsRef<std::path::Path>) -> PolyIOResult<()> {
+pub async fn remove_dir_all(path: impl AsRef<std::path::Path>) -> AetherIOResult<()> {
     let path = path.as_ref();
 
     tokio::fs::remove_dir_all(path)
@@ -98,7 +98,7 @@ pub async fn remove_dir_all(path: impl AsRef<std::path::Path>) -> PolyIOResult<(
     skip(path),
     fields(path = %path.as_ref().display())
 )]
-pub async fn remove_dir(path: impl AsRef<std::path::Path>) -> PolyIOResult<()> {
+pub async fn remove_dir(path: impl AsRef<std::path::Path>) -> AetherIOResult<()> {
     let path = path.as_ref();
 
     tokio::fs::remove_dir(path)
@@ -114,7 +114,7 @@ pub async fn remove_dir(path: impl AsRef<std::path::Path>) -> PolyIOResult<()> {
     skip(path),
     fields(path = %path.as_ref().display())
 )]
-pub async fn try_exists(path: impl AsRef<std::path::Path>) -> PolyIOResult<bool> {
+pub async fn try_exists(path: impl AsRef<std::path::Path>) -> AetherIOResult<bool> {
     let path = path.as_ref();
 
     tokio::fs::try_exists(path)
@@ -130,7 +130,7 @@ pub async fn try_exists(path: impl AsRef<std::path::Path>) -> PolyIOResult<bool>
     skip(path),
     fields(path = %path.as_ref().display())
 )]
-pub async fn read_gz(path: impl AsRef<std::path::Path>) -> PolyIOResult<Vec<u8>> {
+pub async fn read_gz(path: impl AsRef<std::path::Path>) -> AetherIOResult<Vec<u8>> {
     let mut f = tokio::fs::File::open(path).await?;
     let mut buf = vec![];
     tokio::io::AsyncReadExt::read_to_end(&mut f, &mut buf).await?;
@@ -147,7 +147,7 @@ pub async fn read_gz(path: impl AsRef<std::path::Path>) -> PolyIOResult<Vec<u8>>
     skip(path),
     fields(path = %path.as_ref().display())
 )]
-pub async fn read_to_string(path: impl AsRef<std::path::Path>) -> PolyIOResult<String> {
+pub async fn read_to_string(path: impl AsRef<std::path::Path>) -> AetherIOResult<String> {
     let path = path.as_ref();
 
     tokio::fs::read_to_string(path)
@@ -163,7 +163,7 @@ pub async fn read_to_string(path: impl AsRef<std::path::Path>) -> PolyIOResult<S
     skip(path),
     fields(path = %path.as_ref().display())
 )]
-pub async fn read(path: impl AsRef<std::path::Path>) -> PolyIOResult<Vec<u8>> {
+pub async fn read(path: impl AsRef<std::path::Path>) -> AetherIOResult<Vec<u8>> {
     let path = path.as_ref();
 
     tokio::fs::read(path)
@@ -179,7 +179,7 @@ pub async fn read(path: impl AsRef<std::path::Path>) -> PolyIOResult<Vec<u8>> {
     skip(path),
     fields(path = %path.as_ref().display())
 )]
-pub async fn read_json<T: DeserializeOwned>(path: impl AsRef<std::path::Path>) -> PolyIOResult<T> {
+pub async fn read_json<T: DeserializeOwned>(path: impl AsRef<std::path::Path>) -> AetherIOResult<T> {
     serde_json::from_slice(&read(&path).await?).map_err(|err| IOError::JsonFileParseError {
         source: err,
         file: path.as_ref().to_path_buf(),
@@ -191,7 +191,7 @@ pub async fn read_json<T: DeserializeOwned>(path: impl AsRef<std::path::Path>) -
     skip(path, data),
     fields(path = %path.as_ref().display())
 )]
-pub async fn write(path: impl AsRef<std::path::Path>, data: impl AsRef<[u8]>) -> PolyIOResult<()> {
+pub async fn write(path: impl AsRef<std::path::Path>, data: impl AsRef<[u8]>) -> AetherIOResult<()> {
     let path = path.as_ref();
 
     tokio::fs::write(path, data)
@@ -291,7 +291,7 @@ where
 pub async fn write_json<T: Serialize>(
     path: impl AsRef<std::path::Path>,
     data: T,
-) -> PolyIOResult<()> {
+) -> AetherIOResult<()> {
     write(
         &path,
         serde_json::to_vec(&data).map_err(|err| IOError::JsonFileParseError {
@@ -345,7 +345,7 @@ fn temp_sibling_pid(name: &str) -> Option<u32> {
     skip(dir),
     fields(dir = %dir.as_ref().display())
 )]
-pub async fn sweep_temp_files(dir: impl AsRef<Path>) -> PolyIOResult<u64> {
+pub async fn sweep_temp_files(dir: impl AsRef<Path>) -> AetherIOResult<u64> {
     let dir = dir.as_ref();
     let path_err = |source| IOError::PathIOError {
         source,
@@ -415,7 +415,7 @@ pub async fn sweep_temp_files(dir: impl AsRef<Path>) -> PolyIOResult<u64> {
     skip(path, data),
     fields(path = %path.as_ref().display())
 )]
-pub async fn write_atomic(path: impl AsRef<Path>, data: impl AsRef<[u8]>) -> PolyIOResult<()> {
+pub async fn write_atomic(path: impl AsRef<Path>, data: impl AsRef<[u8]>) -> AetherIOResult<()> {
     let path = path.as_ref();
 
     if let Some(parent) = path.parent()
@@ -458,7 +458,7 @@ pub async fn write_atomic(path: impl AsRef<Path>, data: impl AsRef<[u8]>) -> Pol
     skip(path, data),
     fields(path = %path.as_ref().display())
 )]
-pub async fn write_json_atomic<T: Serialize>(path: impl AsRef<Path>, data: T) -> PolyIOResult<()> {
+pub async fn write_json_atomic<T: Serialize>(path: impl AsRef<Path>, data: T) -> AetherIOResult<()> {
     let bytes = serde_json::to_vec(&data).map_err(|err| IOError::JsonFileWrite {
         source: err,
         file: path.as_ref().to_path_buf(),
@@ -475,7 +475,7 @@ pub async fn write_json_atomic<T: Serialize>(path: impl AsRef<Path>, data: T) ->
 pub fn ensure_under<R: AsRef<Path>>(
     path: impl AsRef<Path>,
     roots: impl IntoIterator<Item = R>,
-) -> PolyIOResult<Option<PathBuf>> {
+) -> AetherIOResult<Option<PathBuf>> {
     let canon = crate::canonicalize(path)?;
 
     for root in roots {
@@ -490,7 +490,7 @@ pub fn ensure_under<R: AsRef<Path>>(
 }
 
 #[tracing::instrument(level = "debug", skip(exclude_top))]
-pub async fn copy_dir(src: &Path, dst: &Path, exclude_top: &[&str]) -> PolyIOResult<()> {
+pub async fn copy_dir(src: &Path, dst: &Path, exclude_top: &[&str]) -> AetherIOResult<()> {
     let mut stack: Vec<(PathBuf, PathBuf, bool)> =
         vec![(src.to_path_buf(), dst.to_path_buf(), true)];
 
@@ -550,7 +550,7 @@ pub async fn dir_has_content(dir: &Path) -> bool {
 pub async fn rename(
     from: impl AsRef<std::path::Path>,
     to: impl AsRef<std::path::Path>,
-) -> PolyIOResult<()> {
+) -> AetherIOResult<()> {
     let from = from.as_ref();
     let to = to.as_ref();
 
@@ -574,7 +574,7 @@ pub async fn rename(
 pub async fn copy(
     from: impl AsRef<std::path::Path>,
     to: impl AsRef<std::path::Path>,
-) -> PolyIOResult<u64> {
+) -> AetherIOResult<u64> {
     let from = from.as_ref();
     let to = to.as_ref();
 
@@ -591,7 +591,7 @@ pub async fn copy(
     skip(path),
     fields(path = %path.as_ref().display())
 )]
-pub async fn remove_file(path: impl AsRef<std::path::Path>) -> PolyIOResult<()> {
+pub async fn remove_file(path: impl AsRef<std::path::Path>) -> AetherIOResult<()> {
     let path = path.as_ref();
     tokio::fs::remove_file(path)
         .await
@@ -607,7 +607,7 @@ pub async fn remove_file(path: impl AsRef<std::path::Path>) -> PolyIOResult<()> 
     skip(path),
     fields(path = %path.as_ref().display())
 )]
-pub async fn symlink_metadata(path: impl AsRef<std::path::Path>) -> PolyIOResult<Metadata> {
+pub async fn symlink_metadata(path: impl AsRef<std::path::Path>) -> AetherIOResult<Metadata> {
     let path = path.as_ref();
     tokio::fs::symlink_metadata(path)
         .await
@@ -633,7 +633,7 @@ fn resolved_target(original: &std::path::Path) -> PathBuf {
 pub async fn symlink_file(
     original: impl AsRef<std::path::Path>,
     link: impl AsRef<std::path::Path>,
-) -> PolyIOResult<()> {
+) -> AetherIOResult<()> {
     let original = resolved_target(original.as_ref());
     let original = original.as_path();
     let link = link.as_ref();
@@ -656,7 +656,7 @@ pub async fn symlink_file(
     skip(path),
     fields(path = %path.as_ref().display())
 )]
-pub async fn file_id(path: impl AsRef<std::path::Path>) -> PolyIOResult<(u64, u64)> {
+pub async fn file_id(path: impl AsRef<std::path::Path>) -> AetherIOResult<(u64, u64)> {
     use std::os::windows::io::AsRawHandle;
 
     use windows_sys::Win32::Storage::FileSystem::{
@@ -706,7 +706,7 @@ pub async fn file_id(path: impl AsRef<std::path::Path>) -> PolyIOResult<(u64, u6
     skip(path),
     fields(path = %path.as_ref().display())
 )]
-pub async fn file_id(path: impl AsRef<std::path::Path>) -> PolyIOResult<(u64, u64)> {
+pub async fn file_id(path: impl AsRef<std::path::Path>) -> AetherIOResult<(u64, u64)> {
     use std::os::unix::fs::MetadataExt;
 
     let meta = stat(path).await?;
@@ -724,7 +724,7 @@ pub async fn file_id(path: impl AsRef<std::path::Path>) -> PolyIOResult<(u64, u6
 pub async fn symlink_dir(
     original: impl AsRef<std::path::Path>,
     link: impl AsRef<std::path::Path>,
-) -> PolyIOResult<()> {
+) -> AetherIOResult<()> {
     let original = resolved_target(original.as_ref());
     let original = original.as_path();
     let link = link.as_ref();
@@ -754,7 +754,7 @@ pub async fn symlink_dir(
     skip(path),
     fields(path = %path.as_ref().display())
 )]
-pub async fn read_link(path: impl AsRef<std::path::Path>) -> PolyIOResult<std::path::PathBuf> {
+pub async fn read_link(path: impl AsRef<std::path::Path>) -> AetherIOResult<std::path::PathBuf> {
     let path = path.as_ref();
 
     let target = tokio::fs::read_link(path)
@@ -782,7 +782,7 @@ pub async fn read_link(path: impl AsRef<std::path::Path>) -> PolyIOResult<std::p
     skip(path),
     fields(path = %path.as_ref().display())
 )]
-pub async fn remove_symlink_dir(path: impl AsRef<std::path::Path>) -> PolyIOResult<()> {
+pub async fn remove_symlink_dir(path: impl AsRef<std::path::Path>) -> AetherIOResult<()> {
     let path = path.as_ref();
 
     #[cfg(windows)]
@@ -798,12 +798,12 @@ pub async fn remove_symlink_dir(path: impl AsRef<std::path::Path>) -> PolyIOResu
 }
 
 #[tracing::instrument(level = "debug")]
-pub async fn tempdir() -> PolyIOResult<TempDir> {
+pub async fn tempdir() -> AetherIOResult<TempDir> {
     Ok(TempDir::new().await?)
 }
 
 #[tracing::instrument(level = "debug")]
-pub async fn tempfile() -> PolyIOResult<TempFile> {
+pub async fn tempfile() -> AetherIOResult<TempFile> {
     Ok(TempFile::new().await?)
 }
 
@@ -827,7 +827,7 @@ pub fn sanitize_path(path: impl AsRef<std::path::Path>) -> PathBuf {
     skip(path),
     fields(path = %path.as_ref().display())
 )]
-pub async fn stat(path: impl AsRef<std::path::Path>) -> PolyIOResult<Metadata> {
+pub async fn stat(path: impl AsRef<std::path::Path>) -> AetherIOResult<Metadata> {
     tokio::fs::metadata(path).await.map_err(IOError::from)
 }
 #[cfg(test)]
@@ -891,7 +891,7 @@ mod tests {
     fn scratch(tag: &str) -> PathBuf {
         static N: AtomicU64 = AtomicU64::new(0);
         let dir = std::env::temp_dir().join(format!(
-            "polyio-{tag}-{}-{}",
+            "aetherio-{tag}-{}-{}",
             std::process::id(),
             N.fetch_add(1, Ordering::Relaxed)
         ));
@@ -949,7 +949,7 @@ mod tests {
 
         assert_eq!(temp_sibling_pid(name), Some(std::process::id()));
 
-        // Files polyio did not write
+        // Files aetherio did not write
         assert_eq!(temp_sibling_pid("zulu21.zip"), None);
         assert_eq!(temp_sibling_pid(".vimrc.tmp"), None);
         assert_eq!(temp_sibling_pid(".cache.notapid.7.tmp"), None);

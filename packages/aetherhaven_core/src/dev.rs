@@ -245,7 +245,7 @@ async fn ephemeral_root() -> LauncherResult<std::path::PathBuf> {
         .join("target")
         .join(format!("ephemeral-{}", Uuid::new_v4()));
 
-    polyio::create_dir_all(&path).await?;
+    aetherio::create_dir_all(&path).await?;
 
     Ok(path)
 }

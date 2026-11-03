@@ -23,7 +23,7 @@ impl CredentialsStore {
             return Ok(Self::default());
         }
 
-        match polyio::read_json(&path).await {
+        match aetherio::read_json(&path).await {
             Ok(store) => Ok(store),
             Err(err) => {
                 tracing::warn!("failed to read auth file: {err}");
@@ -36,7 +36,7 @@ impl CredentialsStore {
     pub async fn save(&self) -> AuthResult<()> {
         let path = paths::auth_file()?;
 
-        polyio::write_json_atomic(&path, self).await?;
+        aetherio::write_json_atomic(&path, self).await?;
         Ok(())
     }
 

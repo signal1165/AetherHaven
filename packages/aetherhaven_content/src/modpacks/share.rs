@@ -96,7 +96,7 @@ impl SharedDownload {
         Some(ExternalFile {
             name,
             url: self.url.clone(),
-            sha1: polyio::normalize_hash(&self.sha1),
+            sha1: aetherio::normalize_hash(&self.sha1),
             size: self.size,
             content_type,
         })
@@ -373,7 +373,7 @@ pub async fn collect_share_content(
         candidates.push(Candidate {
             path,
             file_name,
-            hash: polyio::normalize_hash(&row.hash),
+            hash: aetherio::normalize_hash(&row.hash),
             enabled: row.enabled != 0,
             local,
             known_url,
@@ -510,7 +510,7 @@ fn shareable(content_type: ContentType) -> bool {
 
 async fn local_file(artifact: &ArtifactRow) -> Option<(PathBuf, u64)> {
     let path = artifact_absolute_path(&artifact.path).ok()?;
-    let size = polyio::stat(&path).await.ok()?.len();
+    let size = aetherio::stat(&path).await.ok()?.len();
     Some((path, size))
 }
 
@@ -558,12 +558,12 @@ async fn index_hashes(
     local: Option<&Path>,
 ) -> Option<(BTreeMap<&'static str, String>, u64)> {
     let local = local?;
-    let sha1 = polyio::normalize_hash(sha1);
-    let (actual, sha512) = polyio::sha1_and_sha512_file(local).await.ok()?;
-    if polyio::normalize_hash(&actual) != sha1 {
+    let sha1 = aetherio::normalize_hash(sha1);
+    let (actual, sha512) = aetherio::sha1_and_sha512_file(local).await.ok()?;
+    if aetherio::normalize_hash(&actual) != sha1 {
         return None;
     }
-    let size = polyio::stat(local).await.ok()?.len();
+    let size = aetherio::stat(local).await.ok()?.len();
     Some((BTreeMap::from([("sha1", sha1), ("sha512", sha512)]), size))
 }
 
@@ -571,7 +571,7 @@ fn version_download(version: &VersionDetail, hash: &str) -> Option<(String, u64)
     version
         .files
         .iter()
-        .find(|file| polyio::normalize_hash(&file.sha1) == hash)
+        .find(|file| aetherio::normalize_hash(&file.sha1) == hash)
         .filter(|file| trusted_download(&file.url))
         .map(|file| (file.url.clone(), file.size))
 }
@@ -653,7 +653,7 @@ pub async fn write_share_archive(
 
     if let Some(carry) = &content.carryover {
         for loose in &carry.loose {
-            let local = carry.game_dir.join(polyio::sanitize_path(&loose.path));
+            let local = carry.game_dir.join(aetherio::sanitize_path(&loose.path));
             let indexed = if index_download(&loose.url) {
                 index_hashes(&loose.sha1, Some(&local)).await
             } else {
@@ -731,7 +731,7 @@ pub async fn write_share_archive(
         dependencies: index_dependencies(&share),
     };
 
-    let staging = polyio::temp_sibling(dest);
+    let staging = aetherio::temp_sibling(dest);
     let carried = content
         .carryover
         .as_ref()
@@ -741,12 +741,12 @@ pub async fn write_share_archive(
             &staging, &index, &share, icon, &embedded, carried, &mut meter,
         )
         .await?;
-        polyio::rename(&staging, dest).await?;
+        aetherio::rename(&staging, dest).await?;
         ContentResult::Ok(())
     }
     .await;
     if let Err(err) = written {
-        polyio::remove_file(&staging).await.ok();
+        aetherio::remove_file(&staging).await.ok();
         return Err(err);
     }
 
@@ -788,7 +788,7 @@ async fn write_zip(
     meter: &mut ExportMeter<'_>,
 ) -> ContentResult<()> {
     if let Some(parent) = dest.parent() {
-        polyio::create_dir_all(parent).await?;
+        aetherio::create_dir_all(parent).await?;
     }
     let file = tokio::fs::File::create(dest).await?;
     let mut writer = async_zip::tokio::write::ZipFileWriter::with_tokio(file);
@@ -819,7 +819,7 @@ async fn write_zip(
         && !files.is_empty()
     {
         let names: HashSet<&str> = files.iter().map(|(_, entry)| entry.as_str()).collect();
-        let mut cursor = polyio::ZipEntryCursor::open(archive, |name| names.contains(name)).await?;
+        let mut cursor = aetherio::ZipEntryCursor::open(archive, |name| names.contains(name)).await?;
         for (rel, entry) in files {
             let bytes = cursor.read(entry).await?;
             write_entry(&mut writer, &format!("{OVERRIDES}{rel}"), &bytes, deflate).await?;
@@ -873,7 +873,7 @@ async fn stream_entry(
 }
 
 fn zip_error(err: async_zip::error::ZipError) -> ContentError {
-    ContentError::Io(polyio::IOError::from(err))
+    ContentError::Io(aetherio::IOError::from(err))
 }
 
 #[tracing::instrument(skip(manifest, share, progress, ctx), fields(name = %share.name))]
@@ -952,7 +952,7 @@ pub async fn install_shared_content(
         .extend(manifest.contents.unresolved.iter().cloned());
 
     for hash in &share.disabled {
-        let hash = polyio::normalize_hash(hash);
+        let hash = aetherio::normalize_hash(hash);
         if linked_before.contains(&hash) || !keeps_disabled_locally(&cluster, &hash, ctx).await? {
             continue;
         }
@@ -1069,7 +1069,7 @@ async fn import_embedded(
         return Ok(());
     }
 
-    let staging = polyio::tempdir().await?;
+    let staging = aetherio::tempdir().await?;
     let mut files = Vec::new();
     for (rel, entry, content_type) in bundled {
         let Some(bytes) = layers.read(&entry).await else {
@@ -1084,9 +1084,9 @@ async fn import_embedded(
             .join(content_type.folder_name())
             .join(file_name);
         if let Some(parent) = path.parent() {
-            polyio::create_dir_all(parent).await?;
+            aetherio::create_dir_all(parent).await?;
         }
-        polyio::write(&path, bytes).await?;
+        aetherio::write(&path, bytes).await?;
         files.push((path, content_type));
     }
 
@@ -1179,10 +1179,10 @@ mod tests {
 
     #[tokio::test]
     async fn links_modrinth_does_not_allow_go_in_the_aetherhaven_file() {
-        let scratch = polyio::testing::ScratchDir::new("share-index-hosts");
+        let scratch = aetherio::testing::ScratchDir::new("share-index-hosts");
         let dest = scratch.path().join("hosts.mrpack");
         let jar = scratch.path().join("sodium.jar");
-        polyio::write(&jar, b"hello").await.unwrap();
+        aetherio::write(&jar, b"hello").await.unwrap();
         let file = |path: &str, url: &str| SharedFile {
             path: path.into(),
             sha1: "aaf4c61ddcc5e8a2dabede0f3b482cd9aea9434d".into(),
@@ -1213,7 +1213,7 @@ mod tests {
         assert_eq!(report.linked, 2);
 
         let entries =
-            polyio::read_zip_file_entries(&dest, |name| name == INDEX_ENTRY || name == SHARE_ENTRY)
+            aetherio::read_zip_file_entries(&dest, |name| name == INDEX_ENTRY || name == SHARE_ENTRY)
                 .await
                 .unwrap();
         let read = |name: &str| -> serde_json::Value {

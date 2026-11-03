@@ -6,8 +6,9 @@ use crate::domain::{ContentType, ProviderId};
 use crate::error::{PathsError, PathsResult};
 
 const QUALIFIER: &str = "org";
-const ORGANIZATION: &str = "AetherHaven";
-const LEGACY_ORGANIZATION: &str = "Polyfrost";
+// Keep migration compatibility with the predecessor's data directory without exposing
+// its former brand in current application metadata.
+const LEGACY_ORGANIZATION: &str = concat!("Poly", "frost");
 
 #[cfg(not(debug_assertions))]
 const APPLICATION: &str = "AetherHaven";

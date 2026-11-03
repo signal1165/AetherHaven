@@ -27,7 +27,7 @@ pub enum JavaError {
     },
 
     #[error("IO Error: {0}")]
-    PolyIOError(#[from] polyio::IOError),
+    AetherIOError(#[from] aetherio::IOError),
 
     #[error("no java package found for major version {major}")]
     PackageNotFound { major: u32 },
@@ -82,8 +82,8 @@ impl JavaError {
             JavaError::PackageNotFound { .. } | JavaError::Cancelled => true,
             JavaError::RuntimeCheckError { source, .. }
             | JavaError::ArchiveExtract { source, .. } => is_transient_io(source),
-            JavaError::PolyIOError(polyio::IOError::IOError(source))
-            | JavaError::PolyIOError(polyio::IOError::PathIOError { source, .. }) => {
+            JavaError::AetherIOError(aetherio::IOError::IOError(source))
+            | JavaError::AetherIOError(aetherio::IOError::PathIOError { source, .. }) => {
                 is_transient_io(source)
             }
             JavaError::Request(source) => source.is_transient(),

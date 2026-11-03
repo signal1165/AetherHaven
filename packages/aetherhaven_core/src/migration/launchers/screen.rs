@@ -157,7 +157,7 @@ fn mark_installed(
         let in_instance = raw
             .hash
             .as_deref()
-            .is_some_and(|hash| hashes.contains(polyio::normalize_hash(hash).as_str()))
+            .is_some_and(|hash| hashes.contains(aetherio::normalize_hash(hash).as_str()))
             || ids.iter().any(|(provider, id)| {
                 id.is_some_and(|id| present.contains(&(*provider, id.clone())))
             });

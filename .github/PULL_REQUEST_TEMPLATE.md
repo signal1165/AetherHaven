@@ -17,7 +17,7 @@ Fixes #
 Does this PR require updates to the documentation at github.com/signal1165/AetherHaven?
 * Yes
   * 1. Please create a docs issue: https://github.com/signal1165/AetherHaven/issues/new
-  * 2. Make sure this api is cross compatible with the existing api (or at least documented as such, see our policy on cross compatibility at https://contributing.polyfrost.org/)
+  * 2. Make sure this api is cross compatible with the existing api (or at least documented as such, see our policy on cross compatibility at https://github.com/signal1165/AetherHaven/blob/aetherhaven-complete/CONTRIBUTING.md/)
   * 2. Paste the link to the docs issue below this comment
 * No
   * Are you sure? If so, nothing to do here.

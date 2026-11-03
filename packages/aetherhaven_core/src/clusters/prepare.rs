@@ -167,7 +167,7 @@ async fn cached_assets_index(
     let path = paths::assets_index_dir()
         .ok()?
         .join(format!("{}.json", info.asset_index.id));
-    polyio::read_json(&path).await.ok()
+    aetherio::read_json(&path).await.ok()
 }
 
 #[tracing::instrument(level = "debug", skip(state))]

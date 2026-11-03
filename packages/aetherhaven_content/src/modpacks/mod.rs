@@ -260,9 +260,9 @@ pub async fn read_modpack(path: &Path, ctx: &ContentCtx) -> ContentResult<Modpac
 
 async fn zip_entry(path: &Path, entry: &str) -> ContentResult<Option<Vec<u8>>> {
     let file = tokio::fs::File::open(path).await?;
-    match polyio::try_read_zip_entry_bytes(tokio::io::BufReader::new(file), entry).await {
+    match aetherio::try_read_zip_entry_bytes(tokio::io::BufReader::new(file), entry).await {
         Ok(bytes) => Ok(Some(bytes)),
-        Err(polyio::IOError::FileNotFoundInZip { .. }) => Ok(None),
+        Err(aetherio::IOError::FileNotFoundInZip { .. }) => Ok(None),
         Err(err) => Err(err.into()),
     }
 }

@@ -24,7 +24,7 @@ pub enum RequestError {
     ReqwestError(#[from] reqwest::Error),
 
     #[error("IO Error: {0}")]
-    IOError(#[from] polyio::IOError),
+    IOError(#[from] aetherio::IOError),
 
     #[error(
         "Failed to parse {type_name} from {url} (HTTP {status}): {source}; body starts: {snippet}"
@@ -193,9 +193,9 @@ impl RequestError {
     }
 }
 
-fn is_transient_io(error: &polyio::IOError) -> bool {
+fn is_transient_io(error: &aetherio::IOError) -> bool {
     let source = match error {
-        polyio::IOError::IOError(source) | polyio::IOError::PathIOError { source, .. } => source,
+        aetherio::IOError::IOError(source) | aetherio::IOError::PathIOError { source, .. } => source,
         _ => return false,
     };
 

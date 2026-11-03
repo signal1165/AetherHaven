@@ -116,7 +116,7 @@ const NATIVES_RECEIPTS: &str = ".extracted";
 fn natives_receipt(natives_dir: &Path, lib: &Library) -> PathBuf {
     natives_dir
         .join(NATIVES_RECEIPTS)
-        .join(polyio::sanitize_path(lib.name.replace(':', "_")))
+        .join(aetherio::sanitize_path(lib.name.replace(':', "_")))
 }
 
 fn natives_extracted(natives_dir: &Path, lib: &Library, java_arch: &str) -> bool {
@@ -158,9 +158,9 @@ fn carries_natives(lib: &Library, java_arch: &str) -> bool {
 async fn record_natives(natives_dir: &Path, lib: &Library, sha1: &str) -> McResult<()> {
     let path = natives_receipt(natives_dir, lib);
     if let Some(parent) = path.parent() {
-        polyio::create_dir_all(parent).await?;
+        aetherio::create_dir_all(parent).await?;
     }
-    polyio::write(&path, sha1.as_bytes()).await?;
+    aetherio::write(&path, sha1.as_bytes()).await?;
     Ok(())
 }
 
@@ -322,7 +322,7 @@ enum JarVerdict {
 }
 
 async fn inspect_jar(path: &Path, java_arch: &str) -> JarVerdict {
-    let names = match polyio::zip_entry_names(path).await {
+    let names = match aetherio::zip_entry_names(path).await {
         Ok(names) => names,
         Err(err) => {
             tracing::debug!(path = %path.display(), "could not read natives jar: {err}");
@@ -363,7 +363,7 @@ fn natives_family(lib: &Library) -> String {
 }
 
 async fn any_native_unpacked(natives_dir: &Path) -> bool {
-    let Ok(mut entries) = polyio::read_dir(natives_dir).await else {
+    let Ok(mut entries) = aetherio::read_dir(natives_dir).await else {
         return false;
     };
 
@@ -540,9 +540,9 @@ pub async fn verify_game_files(
                 continue;
             }
 
-            match polyio::sha1_file_sync(path) {
+            match aetherio::sha1_file_sync(path) {
                 Ok(actual)
-                    if polyio::normalize_hash(&actual) == polyio::normalize_hash(expected) =>
+                    if aetherio::normalize_hash(&actual) == aetherio::normalize_hash(expected) =>
                 {
                     report.checked += 1;
                 }
@@ -810,7 +810,7 @@ pub async fn download_version_info(
                         );
                         return Ok(());
                     }
-                    polyio::write_json_atomic(&path, &info).await?;
+                    aetherio::write_json_atomic(&path, &info).await?;
                     McResult::Ok(())
                 };
                 if let Err(err) = refresh.await {
@@ -825,7 +825,7 @@ pub async fn download_version_info(
     }
 
     let info = fetch_version_info(ctx, progress, version, loader, &version_id).await?;
-    polyio::write_json_atomic(&path, &info).await?;
+    aetherio::write_json_atomic(&path, &info).await?;
     if loader.is_some() {
         VERSION_INFO_REFRESHED.lock().unwrap().insert(path);
     }
@@ -931,7 +931,7 @@ pub async fn download_assets_index(
     let path = paths::assets_index_dir()?.join(format!("{}.json", version.asset_index.id));
 
     if path.exists() && !force {
-        if let Ok(data) = polyio::read_json::<AssetsIndex>(&path).await {
+        if let Ok(data) = aetherio::read_json::<AssetsIndex>(&path).await {
             return Ok(data);
         }
         tracing::warn!("cached assets index is invalid, redownloading");
@@ -950,7 +950,7 @@ pub async fn download_assets_index(
     )
     .await?;
 
-    polyio::read_json(&path).await.map_err(Into::into)
+    aetherio::read_json(&path).await.map_err(Into::into)
 }
 
 #[tracing::instrument(skip_all, level = "debug")]
@@ -970,7 +970,7 @@ pub async fn download_assets(
         paths::assets_object_dir()?
     };
 
-    polyio::create_dir_all(&dir).await?;
+    aetherio::create_dir_all(&dir).await?;
 
     // Objects are sharded into 256 fixed subdirectories creating them once
     // here saves a blocking-pool round trip on every one of the ~5000 files
@@ -1057,7 +1057,7 @@ pub async fn download_client(
     // matched so a wrong-but-right-length jar is unreachable
     let expected_size = u64::from(client.size);
     if !force
-        && let Ok(meta) = polyio::stat(&path).await
+        && let Ok(meta) = aetherio::stat(&path).await
         && (expected_size == 0 || meta.len() == expected_size)
     {
         return Ok(path);
@@ -1265,13 +1265,13 @@ pub async fn download_libraries(
     let natives_dest = paths::natives_dir()?.join(&version);
     let java_arch = java_arch.to_string();
 
-    polyio::create_dir_all(&natives_dest).await?;
+    aetherio::create_dir_all(&natives_dest).await?;
 
     if libraries.is_empty() {
         return Ok(0);
     }
 
-    polyio::create_dir_all(&lib_dir).await?;
+    aetherio::create_dir_all(&lib_dir).await?;
 
     let started = std::time::Instant::now();
     let count = libraries.len();
@@ -1365,7 +1365,7 @@ pub async fn download_libraries(
                             TaskCategory::Natives,
                         );
                         extract.set_phase(aetherhaven_events::TaskPhase::Extracting);
-                        polyio::unzip_bytes_filtered(
+                        aetherio::unzip_bytes_filtered(
                             data,
                             Some(|name: &str| !name.starts_with("META-INF")),
                             &natives_dest,
@@ -1654,7 +1654,7 @@ async fn read_cached_version_info(path: &Path) -> Option<VersionInfo> {
         return None;
     }
 
-    polyio::read_json::<VersionInfo>(path)
+    aetherio::read_json::<VersionInfo>(path)
         .await
         .inspect_err(|err| {
             tracing::warn!(

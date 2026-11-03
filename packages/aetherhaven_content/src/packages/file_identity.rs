@@ -1,4 +1,4 @@
-use polyio::normalize_hash;
+use aetherio::normalize_hash;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct FileIdentity {

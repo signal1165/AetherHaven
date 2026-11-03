@@ -237,7 +237,7 @@ impl RequestClient {
         let http_stream = res.stream(options, events).await?;
         let http_stream = std::pin::pin!(http_stream);
 
-        polyio::write_stream(dest, http_stream, size_hint).await?;
+        aetherio::write_stream(dest, http_stream, size_hint).await?;
 
         Ok(())
     }

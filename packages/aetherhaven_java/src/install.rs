@@ -16,9 +16,9 @@ pub async fn install_package(
     progress: Option<&GroupedProgressSession>,
 ) -> JavaResult<PathBuf> {
     let java_dir = paths::java_dir()?;
-    polyio::create_dir_all(&java_dir).await?;
+    aetherio::create_dir_all(&java_dir).await?;
 
-    let archive_path = java_dir.join(polyio::sanitize_path(&package.name));
+    let archive_path = java_dir.join(aetherio::sanitize_path(&package.name));
 
     let major = package.java_version.first().copied().unwrap_or(0);
 
@@ -67,8 +67,8 @@ pub async fn install_package(
     //events.notify("Extracting package...").body(format!("{} {}", package.vendor, major)).send();
 
     match package.archive {
-        PackageArchive::Zip => polyio::extract_zip(&archive_path, &extract_root).await?,
-        PackageArchive::TarGz => polyio::extract_tar_gz(&archive_path, &extract_root).await?,
+        PackageArchive::Zip => aetherio::extract_zip(&archive_path, &extract_root).await?,
+        PackageArchive::TarGz => aetherio::extract_tar_gz(&archive_path, &extract_root).await?,
     }
 
     // Walks the extract root and stats candidates, so it stays off the caller's
@@ -78,10 +78,10 @@ pub async fn install_package(
         let package = package.clone();
         tokio::task::spawn_blocking(move || resolve_installed_executable(&extract_root, &package))
             .await
-            .map_err(|err| polyio::IOError::from(std::io::Error::other(err)))?
+            .map_err(|err| aetherio::IOError::from(std::io::Error::other(err)))?
     };
 
-    let _ = polyio::remove_file(&archive_path).await;
+    let _ = aetherio::remove_file(&archive_path).await;
 
     tracing::info!(vendor = %package.vendor, major, "installed Java runtime");
 
@@ -95,13 +95,13 @@ pub async fn install_package(
 fn managed_install_root(executable: &Path) -> JavaResult<Option<PathBuf>> {
     let java_dir = paths::java_dir()?;
 
-    let Ok(root) = polyio::canonicalize(&java_dir) else {
+    let Ok(root) = aetherio::canonicalize(&java_dir) else {
         return Ok(None);
     };
 
     // Refuses to resolve once the executable is gone which is the safe answer
     // there is no way left to prove what the path pointed at
-    let canon = match polyio::ensure_under(executable, [&root]) {
+    let canon = match aetherio::ensure_under(executable, [&root]) {
         Ok(Some(canon)) => canon,
         Ok(None) => return Ok(None),
         Err(err) => {
@@ -131,7 +131,7 @@ pub fn is_launcher_managed(executable: &Path) -> bool {
 pub(crate) fn restore_executable_bits(executable: &Path) {
     use std::os::unix::fs::PermissionsExt;
 
-    let Ok(executable) = polyio::canonicalize(executable) else {
+    let Ok(executable) = aetherio::canonicalize(executable) else {
         return;
     };
     if !is_launcher_managed(&executable) {
@@ -182,7 +182,7 @@ pub async fn remove_installed_package(executable: &Path) -> JavaResult<bool> {
         return Ok(false);
     };
 
-    polyio::remove_dir_all(&install_root).await?;
+    aetherio::remove_dir_all(&install_root).await?;
 
     tracing::info!(path = %install_root.display(), "removed installed Java runtime files");
     Ok(true)
@@ -297,7 +297,7 @@ mod tests {
 
         let resolved = managed_install_root(&executable).unwrap().unwrap();
 
-        assert_eq!(resolved, polyio::canonicalize(&install).unwrap());
+        assert_eq!(resolved, aetherio::canonicalize(&install).unwrap());
     }
 
     #[tokio::test]

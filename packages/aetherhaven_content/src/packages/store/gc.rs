@@ -77,7 +77,7 @@ pub async fn collect_unused_artifacts(ctx: &ContentCtx) -> ContentResult<GcRepor
 
 pub async fn find_unreferenced_files(ctx: &ContentCtx) -> ContentResult<Vec<(PathBuf, u64)>> {
     let cache_root = paths::packages_cache_dir()?;
-    if !polyio::try_exists(&cache_root).await.unwrap_or(false) {
+    if !aetherio::try_exists(&cache_root).await.unwrap_or(false) {
         return Ok(Vec::new());
     }
 
@@ -116,7 +116,7 @@ pub async fn remove_unreferenced_files(ctx: &ContentCtx) -> ContentResult<GcRepo
     let mut report = GcReport::default();
 
     for (file, size) in find_unreferenced_files(ctx).await? {
-        if polyio::remove_file(&file).await.is_ok() {
+        if aetherio::remove_file(&file).await.is_ok() {
             report.files_removed += 1;
             report.bytes_freed += size;
             prune_empty_parents(&file, &cache_root).await;
@@ -135,7 +135,7 @@ pub async fn remove_unreferenced_files(ctx: &ContentCtx) -> ContentResult<GcRepo
 }
 
 async fn remove_cached_file(path: &Path) {
-    if polyio::remove_file(path).await.is_err() {
+    if aetherio::remove_file(path).await.is_err() {
         return;
     }
 
@@ -153,7 +153,7 @@ async fn prune_empty_parents(file: &Path, root: &Path) {
         }
 
         // `remove_dir` refuses a non-empty directory which is exactly the stop condition
-        if polyio::remove_dir(&current).await.is_err() {
+        if aetherio::remove_dir(&current).await.is_err() {
             return;
         }
 
@@ -162,7 +162,7 @@ async fn prune_empty_parents(file: &Path, root: &Path) {
 }
 
 async fn is_recent(path: &Path) -> bool {
-    let Ok(meta) = polyio::stat(path).await else {
+    let Ok(meta) = aetherio::stat(path).await else {
         // Cannot tell how old it is so leave it be
         return true;
     };
@@ -174,7 +174,7 @@ async fn is_recent(path: &Path) -> bool {
 }
 
 async fn file_len(path: &Path) -> u64 {
-    polyio::stat(path).await.map(|m| m.len()).unwrap_or(0)
+    aetherio::stat(path).await.map(|m| m.len()).unwrap_or(0)
 }
 
 async fn walk_files(root: &Path) -> Vec<PathBuf> {
@@ -182,7 +182,7 @@ async fn walk_files(root: &Path) -> Vec<PathBuf> {
     let mut stack = vec![root.to_path_buf()];
 
     while let Some(dir) = stack.pop() {
-        let Ok(mut entries) = polyio::read_dir(&dir).await else {
+        let Ok(mut entries) = aetherio::read_dir(&dir).await else {
             continue;
         };
 
@@ -208,14 +208,14 @@ mod tests {
 
     #[tokio::test]
     async fn empty_parents_go_but_the_root_stays() {
-        let root = polyio::testing::ScratchDir::new("gc_prune");
+        let root = aetherio::testing::ScratchDir::new("gc_prune");
         let cache = root.join("packages");
         let nested = cache.join("mod").join("modrinth").join("proj").join("v1");
-        polyio::create_dir_all(&nested).await.unwrap();
+        aetherio::create_dir_all(&nested).await.unwrap();
 
         let file = nested.join("a.jar");
-        polyio::write(&file, b"jar".as_slice()).await.unwrap();
-        polyio::remove_file(&file).await.unwrap();
+        aetherio::write(&file, b"jar".as_slice()).await.unwrap();
+        aetherio::remove_file(&file).await.unwrap();
 
         prune_empty_parents(&file, &cache).await;
 
@@ -227,17 +227,17 @@ mod tests {
 
     #[tokio::test]
     async fn a_sibling_stops_the_prune() {
-        let root = polyio::testing::ScratchDir::new("gc_prune_sibling");
+        let root = aetherio::testing::ScratchDir::new("gc_prune_sibling");
         let cache = root.join("packages");
         let version = cache.join("mod").join("modrinth").join("proj").join("v1");
-        polyio::create_dir_all(&version).await.unwrap();
+        aetherio::create_dir_all(&version).await.unwrap();
 
         let gone = version.join("a.jar");
-        polyio::write(&gone, b"jar".as_slice()).await.unwrap();
-        polyio::write(version.join("b.jar"), b"jar".as_slice())
+        aetherio::write(&gone, b"jar".as_slice()).await.unwrap();
+        aetherio::write(version.join("b.jar"), b"jar".as_slice())
             .await
             .unwrap();
-        polyio::remove_file(&gone).await.unwrap();
+        aetherio::remove_file(&gone).await.unwrap();
 
         prune_empty_parents(&gone, &cache).await;
 
@@ -248,11 +248,11 @@ mod tests {
 
     #[tokio::test]
     async fn fresh_files_are_spared() {
-        let root = polyio::testing::ScratchDir::new("gc_recent");
-        polyio::create_dir_all(root.path()).await.unwrap();
+        let root = aetherio::testing::ScratchDir::new("gc_recent");
+        aetherio::create_dir_all(root.path()).await.unwrap();
 
         let file = root.join("downloading.jar");
-        polyio::write(&file, b"partial".as_slice()).await.unwrap();
+        aetherio::write(&file, b"partial".as_slice()).await.unwrap();
 
         assert!(is_recent(&file).await, "a just-written file is not garbage");
 
@@ -261,17 +261,17 @@ mod tests {
 
     #[tokio::test]
     async fn walk_finds_files_at_every_depth() {
-        let root = polyio::testing::ScratchDir::new("gc_walk");
-        polyio::create_dir_all(root.join("a").join("b"))
+        let root = aetherio::testing::ScratchDir::new("gc_walk");
+        aetherio::create_dir_all(root.join("a").join("b"))
             .await
             .unwrap();
-        polyio::write(root.join("top.jar"), b"1".as_slice())
+        aetherio::write(root.join("top.jar"), b"1".as_slice())
             .await
             .unwrap();
-        polyio::write(root.join("a").join("mid.jar"), b"2".as_slice())
+        aetherio::write(root.join("a").join("mid.jar"), b"2".as_slice())
             .await
             .unwrap();
-        polyio::write(root.join("a").join("b").join("deep.jar"), b"3".as_slice())
+        aetherio::write(root.join("a").join("b").join("deep.jar"), b"3".as_slice())
             .await
             .unwrap();
 

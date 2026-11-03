@@ -219,10 +219,10 @@ mod tests {
 
     #[tokio::test]
     async fn the_same_folder_matches_however_it_is_spelled() {
-        let a = polyio::tempdir().await.unwrap();
-        let b = polyio::tempdir().await.unwrap();
+        let a = aetherio::tempdir().await.unwrap();
+        let b = aetherio::tempdir().await.unwrap();
         let root = a.dir_path();
-        polyio::create_dir(root.join("sub")).await.unwrap();
+        aetherio::create_dir(root.join("sub")).await.unwrap();
 
         assert!(same_folder(root, &root.join(".")));
         assert!(same_folder(root, &root.join("sub").join("..")));

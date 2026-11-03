@@ -21,7 +21,7 @@ pub async fn download_to_path(
     let child = progress.child(label, expected_size, category);
 
     // Every hash in a Minecraft manifest is SHA-1 so the algorithm is implied
-    let expected = expected_sha1.map(polyio::Checksum::sha1);
+    let expected = expected_sha1.map(aetherio::Checksum::sha1);
 
     aetherhaven_net::download_verified(
         requester,

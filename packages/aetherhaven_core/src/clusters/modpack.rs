@@ -503,9 +503,9 @@ async fn save_project_icon(
         .ensure_on_disk(&state.services.requester, url, MODPACK_ICON_EDGE)
         .await?;
     if let Some(parent) = dest.parent() {
-        polyio::create_dir_all(parent).await?;
+        aetherio::create_dir_all(parent).await?;
     }
-    polyio::copy(&cached, &dest).await?;
+    aetherio::copy(&cached, &dest).await?;
     Ok(())
 }
 

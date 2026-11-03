@@ -90,6 +90,6 @@ mod tests {
 
     #[test]
     fn a_url_that_is_not_ours_is_not_a_launch() {
-        assert_eq!(parse(&["https://polyfrost.org"]).launch, None);
+        assert_eq!(parse(&["https://github.com/signal1165/AetherHaven"]).launch, None);
     }
 }

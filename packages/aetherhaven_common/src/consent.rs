@@ -1,14 +1,10 @@
 use std::sync::atomic::{AtomicBool, Ordering};
 
 /// Hosts that are out of bounds for someone who didn't accept TOS
-const GATED_DOMAINS: &[&str] = &["polyfrost.org", "sentry.io"];
+const GATED_DOMAINS: &[&str] = &["services.aetherhaven.invalid", "sentry.io"];
 
-/// Hosts that are allowed even if someone didn't accept TOS
-const ALLOWED_HOSTS: &[&str] = &[
-    "data-v2.polyfrost.org",
-    "meta.polyfrost.org",
-    "status.polyfrost.org",
-];
+/// No first-party service is enabled until AetherHaven publishes its own backend.
+const ALLOWED_HOSTS: &[&str] = &[];
 
 static DECLINED: AtomicBool = AtomicBool::new(false);
 
@@ -56,12 +52,12 @@ mod tests {
     use super::*;
 
     #[test]
-    fn gates_polyfrost_services_and_the_crash_reporter() {
+    fn gates_disabled_services_and_the_crash_reporter() {
         for host in [
-            "polyfrost.org",
-            "plus.polyfrost.org",
-            "PLUS.POLYFROST.ORG",
-            "plus.polyfrost.org.",
+            "services.aetherhaven.invalid",
+            "account.services.aetherhaven.invalid",
+            "SERVICES.AETHERHAVEN.INVALID",
+            "services.aetherhaven.invalid.",
             "o4511714343124992.ingest.us.sentry.io",
         ] {
             assert!(is_gated_host(host), "expected {host} to be gated");
@@ -77,8 +73,8 @@ mod tests {
             "api.minecraftservices.com",
             "www.gstatic.com",
             "github.com",
-            "notpolyfrost.org",
-            "polyfrost.org.attacker.com",
+            "notservices.aetherhaven.invalid",
+            "services.aetherhaven.invalid.attacker.com",
             "evil-sentry.io.attacker.com",
         ] {
             assert!(!is_gated_host(host), "unexpected gate on {host}");
@@ -86,14 +82,10 @@ mod tests {
     }
 
     #[test]
-    fn lets_the_exempt_hosts_through() {
+    fn keeps_public_download_hosts_independent() {
         for url in [
-            "https://data-v2.polyfrost.org/aetherhaven/bundles/metadata.json",
-            "https://data-v2.polyfrost.org/aetherhaven/versions/art/Tricky_Trials.jpg",
-            "https://data-v2.polyfrost.org/aetherhaven/tos.json",
-            "https://meta.polyfrost.org/fabric/v2/manifest.json",
-            "https://status.polyfrost.org/index.json",
-            "https://META.POLYFROST.ORG./minecraft/v1/manifest.json",
+            "https://api.modrinth.com/v2/search",
+            "https://api.curseforge.com/v1/games/432",
         ] {
             assert!(!is_gated_url(url), "unexpected gate on {url}");
         }
@@ -102,10 +94,9 @@ mod tests {
     #[test]
     fn the_exemption_is_the_exact_host_and_nothing_near_it() {
         for host in [
-            "plus.polyfrost.org",
-            "evil.data-v2.polyfrost.org",
-            "meta.polyfrost.org.evil.polyfrost.org",
-            "status.polyfrost.org.evil.polyfrost.org",
+            "account.services.aetherhaven.invalid",
+            "evil.services.aetherhaven.invalid",
+            "services.aetherhaven.invalid.evil.services.aetherhaven.invalid",
         ] {
             assert!(is_gated_host(host), "expected {host} to stay gated");
         }
@@ -113,8 +104,8 @@ mod tests {
 
     #[test]
     fn gates_urls_by_their_host() {
-        assert!(is_gated_url("https://plus.polyfrost.org/account/login"));
-        assert!(is_gated_url("wss://plus.polyfrost.org/websocket"));
+        assert!(is_gated_url("https://services.aetherhaven.invalid/account/login"));
+        assert!(is_gated_url("wss://services.aetherhaven.invalid/websocket"));
         assert!(!is_gated_url("https://api.modrinth.com/v2/search"));
     }
 

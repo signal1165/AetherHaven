@@ -1,4 +1,4 @@
-# Contributing to OneLauncher/AetherHaven
+# Contributing to AetherHaven Launcher/AetherHaven
 
 Welcome!
 
@@ -21,7 +21,7 @@ To familiarize yourself with the project, please read the [README]. Here are som
 
 #### Creating a New Issue
 
-If you come across an issue or have a feature request for OneLauncher/AetherHaven, please [search if a related issue has already been reported]. If no relevant issue exists, you can open a new issue using the appropriate [issue form].
+If you come across an issue or have a feature request for AetherHaven Launcher/AetherHaven, please [search if a related issue has already been reported]. If no relevant issue exists, you can open a new issue using the appropriate [issue form].
 
 #### Solving an Issue
 
@@ -38,8 +38,8 @@ is via [rustup].
 To make changes locally, follow these steps:
 
 1. Clone the repository: `git clone https://github.com/signal1165/AetherHaven`
-2. Navigate to the project directory: `cd OneLauncher`
-3. Configure your system environment for OneLauncher/AetherHaven development:
+2. Navigate to the project directory: `cd AetherHaven Launcher`
+3. Configure your system environment for AetherHaven Launcher/AetherHaven development:
    1. Install a Rust toolchain that supports edition 2024: `rustup toolchain install stable`
    2. Freya renders with [Skia]; on Linux you may also need system libraries such as a C
       compiler, `pkg-config`, and the usual GUI/graphics dev packages. See the
@@ -91,7 +91,7 @@ Once you have finished making your changes, create a pull request (PR) to submit
 
 ### Your PR is Merged!
 
-Congratulations! 🎉🎉 Polyfrost thanks you for your contribution! ✨
+Congratulations! 🎉🎉 AetherHaven thanks you for your contribution! ✨
 Once your PR is merged, your changes will be included in the next release.
 
 ### Common Errors

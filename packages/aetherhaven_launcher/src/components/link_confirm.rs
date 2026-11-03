@@ -119,5 +119,5 @@ fn is_first_party(url: &str) -> bool {
         .split(['/', '?', '#', ':'])
         .next()
         .unwrap_or_default();
-    host == "polyfrost.org" || host.ends_with(".polyfrost.org")
+    host == "aetherhaven.org" || host.ends_with(".aetherhaven.org")
 }

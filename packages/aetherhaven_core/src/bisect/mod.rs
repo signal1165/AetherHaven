@@ -1127,7 +1127,7 @@ impl JarEntries {
         for &index in candidates {
             if !self.names.contains_key(&index) {
                 let names = match artifact_path(state, &session.hashes[index]).await {
-                    Some(path) => polyio::zip_entry_names(&path)
+                    Some(path) => aetherio::zip_entry_names(&path)
                         .await
                         .unwrap_or_default()
                         .into_iter()

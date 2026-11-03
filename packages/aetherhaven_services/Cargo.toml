@@ -16,7 +16,7 @@ path = "src/lib.rs"
 [dependencies]
 aetherhaven_auth.workspace = true
 aetherhaven_common.workspace = true
-polyio.workspace = true
+aetherio.workspace = true
 
 reqwest.workspace = true
 reqwest-websocket.workspace = true

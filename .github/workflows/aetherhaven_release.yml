@@ -266,9 +266,9 @@ jobs:
         with:
           api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
           organization-id: ${{ secrets.SIGNPATH_ORGANIZATION_ID }}
-          project-slug: onelauncher
+          project-slug: aetherhaven
           signing-policy-slug: release-signing
-          artifact-configuration-slug: onelauncher-binary
+          artifact-configuration-slug: aetherhaven-binary
           github-artifact-id: ${{ steps.win_upload_unsigned_bin.outputs.artifact-id }}
           wait-for-completion: true
           output-artifact-directory: signed-bin
@@ -457,9 +457,9 @@ jobs:
         with:
           api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
           organization-id: ${{ secrets.SIGNPATH_ORGANIZATION_ID }}
-          project-slug: onelauncher
+          project-slug: aetherhaven
           signing-policy-slug: release-signing
-          artifact-configuration-slug: onelauncher-installer
+          artifact-configuration-slug: aetherhaven-installer
           github-artifact-id: ${{ steps.win_upload_unsigned.outputs.artifact-id }}
           wait-for-completion: true
           output-artifact-directory: signed

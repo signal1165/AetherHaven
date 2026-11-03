@@ -4,7 +4,7 @@ use std::path::Path;
 
 use digest::Digest;
 
-use crate::{IOError, PolyIOResult};
+use crate::{IOError, AetherIOResult};
 
 /// Upper bound only smaller files get a buffer sized to fit
 const MAX_HASH_BUFFER: usize = 256 * 1024;
@@ -35,25 +35,25 @@ impl Default for Sha1Stream {
 
 /// Runs on the blocking pool one dispatch for the whole file keeping the
 /// digest off the async workers driving concurrent downloads
-pub async fn sha1_file(path: impl AsRef<Path>) -> PolyIOResult<String> {
+pub async fn sha1_file(path: impl AsRef<Path>) -> AetherIOResult<String> {
     let path = path.as_ref().to_path_buf();
     tokio::task::spawn_blocking(move || sha1_file_sync(&path))
         .await
         .map_err(std::io::Error::other)?
 }
 
-pub fn sha1_file_sync(path: &Path) -> PolyIOResult<String> {
+pub fn sha1_file_sync(path: &Path) -> AetherIOResult<String> {
     digest_file_sync::<sha1::Sha1>(path)
 }
 
-pub async fn sha512_file(path: impl AsRef<Path>) -> PolyIOResult<String> {
+pub async fn sha512_file(path: impl AsRef<Path>) -> AetherIOResult<String> {
     let path = path.as_ref().to_path_buf();
     tokio::task::spawn_blocking(move || digest_file_sync::<sha2::Sha512>(&path))
         .await
         .map_err(std::io::Error::other)?
 }
 
-pub async fn sha1_and_sha512_file(path: impl AsRef<Path>) -> PolyIOResult<(String, String)> {
+pub async fn sha1_and_sha512_file(path: impl AsRef<Path>) -> AetherIOResult<(String, String)> {
     let path = path.as_ref().to_path_buf();
     tokio::task::spawn_blocking(move || {
         let mut sha1 = sha1::Sha1::new();
@@ -68,13 +68,13 @@ pub async fn sha1_and_sha512_file(path: impl AsRef<Path>) -> PolyIOResult<(Strin
     .map_err(std::io::Error::other)?
 }
 
-fn digest_file_sync<D: Digest>(path: &Path) -> PolyIOResult<String> {
+fn digest_file_sync<D: Digest>(path: &Path) -> AetherIOResult<String> {
     let mut hasher = D::new();
     read_file_sync(path, |chunk| hasher.update(chunk))?;
     Ok(to_hex(&hasher.finalize()))
 }
 
-fn read_file_sync(path: &Path, mut on_chunk: impl FnMut(&[u8])) -> PolyIOResult<()> {
+fn read_file_sync(path: &Path, mut on_chunk: impl FnMut(&[u8])) -> AetherIOResult<()> {
     let mut file = std::fs::File::open(path).map_err(|e| IOError::PathIOError {
         source: e,
         path: path.to_string_lossy().to_string(),

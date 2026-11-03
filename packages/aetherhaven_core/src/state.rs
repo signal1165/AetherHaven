@@ -118,7 +118,7 @@ async fn sweep_java_scratch_files() {
         }
     };
 
-    if let Err(err) = polyio::sweep_temp_files(&dir).await {
+    if let Err(err) = aetherio::sweep_temp_files(&dir).await {
         tracing::warn!("java scratch file sweep failed: {err:#}");
     }
 }

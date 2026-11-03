@@ -78,11 +78,11 @@ pub async fn materialize_content(
         paths::shared_minecraft_dir()?
     };
 
-    polyio::create_dir_all(game_dir).await.ok();
-    polyio::create_dir_all(&global_root).await.ok();
+    aetherio::create_dir_all(game_dir).await.ok();
+    aetherio::create_dir_all(&global_root).await.ok();
 
     if mods_in_cluster {
-        polyio::create_dir_all(paths::cluster_mods_dir(&cluster.folder_name)?)
+        aetherio::create_dir_all(paths::cluster_mods_dir(&cluster.folder_name)?)
             .await
             .ok();
         if isolated {
@@ -302,7 +302,7 @@ pub async fn materialize_content(
         for content_type in swap_types(mods_in_cluster) {
             let dir = game_dir.join(content_type.folder_name());
             let stash = cluster_dir.join(content_type.folder_name());
-            polyio::create_dir_all(&dir).await.ok();
+            aetherio::create_dir_all(&dir).await.ok();
 
             let ours = ours_in_folder(*content_type, &linked, previous.as_ref());
             stash_content_files(&dir, &stash, *content_type, &ours).await;
@@ -427,14 +427,14 @@ async fn adopt_into_global(own_root: &Path, global_root: &Path) {
         let own = own_root.join(content_type.folder_name());
         let shared = global_root.join(content_type.folder_name());
 
-        match polyio::symlink_metadata(&own).await {
+        match aetherio::symlink_metadata(&own).await {
             Ok(meta) if meta.is_dir() && !meta.file_type().is_symlink() => {}
             _ => continue,
         }
 
-        polyio::create_dir_all(&shared).await.ok();
+        aetherio::create_dir_all(&shared).await.ok();
 
-        let Ok(mut entries) = polyio::read_dir(&own).await else {
+        let Ok(mut entries) = aetherio::read_dir(&own).await else {
             continue;
         };
 
@@ -442,7 +442,7 @@ async fn adopt_into_global(own_root: &Path, global_root: &Path) {
             let name = entry.file_name();
             let dest = shared.join(&name);
 
-            if polyio::symlink_metadata(&dest).await.is_ok() {
+            if aetherio::symlink_metadata(&dest).await.is_ok() {
                 continue;
             }
 
@@ -466,23 +466,23 @@ async fn ensure_global_links(game_dir: &Path, global_root: &Path) {
     for content_type in GLOBAL_TYPES {
         let link = game_dir.join(content_type.folder_name());
         let target = global_root.join(content_type.folder_name());
-        polyio::create_dir_all(&target).await.ok();
+        aetherio::create_dir_all(&target).await.ok();
 
-        match polyio::symlink_metadata(&link).await {
+        match aetherio::symlink_metadata(&link).await {
             Ok(meta) if meta.file_type().is_symlink() => {
                 let aimed_right = matches!(
-                    (polyio::canonicalize(&link), polyio::canonicalize(&target)),
+                    (aetherio::canonicalize(&link), aetherio::canonicalize(&target)),
                     (Ok(from), Ok(to)) if from == to
                 );
                 if aimed_right {
                     continue;
                 }
 
-                polyio::remove_symlink_dir(&link).await.ok();
+                aetherio::remove_symlink_dir(&link).await.ok();
             }
 
             Ok(meta) if meta.is_dir() => {
-                if polyio::remove_dir_all(&link).await.is_err() {
+                if aetherio::remove_dir_all(&link).await.is_err() {
                     tracing::warn!(
                         dir = %link.display(),
                         "cannot clear the cluster's own pack folder; leaving it unlinked"
@@ -495,7 +495,7 @@ async fn ensure_global_links(game_dir: &Path, global_root: &Path) {
             Err(_) => {}
         }
 
-        if let Err(err) = polyio::symlink_dir(&target, &link).await {
+        if let Err(err) = aetherio::symlink_dir(&target, &link).await {
             tracing::warn!(
                 dir = %link.display(),
                 error = %err,
@@ -532,7 +532,7 @@ async fn leave_global_folders(
 
     for content_type in GLOBAL_TYPES {
         let link = game_dir.join(content_type.folder_name());
-        let is_link = polyio::symlink_metadata(&link)
+        let is_link = aetherio::symlink_metadata(&link)
             .await
             .is_ok_and(|meta| meta.file_type().is_symlink());
         if !is_link && !every_type {
@@ -548,11 +548,11 @@ async fn leave_global_folders(
             continue;
         }
 
-        if let Err(err) = polyio::remove_symlink_dir(&link).await {
+        if let Err(err) = aetherio::remove_symlink_dir(&link).await {
             tracing::warn!(dir = %link.display(), error = %err, "cannot drop the link to the shared pack folder");
             continue;
         }
-        polyio::create_dir_all(&link).await.ok();
+        aetherio::create_dir_all(&link).await.ok();
     }
 
     outcome
@@ -738,7 +738,7 @@ async fn held_elsewhere(
 }
 
 async fn edited_by_hand(services: &LauncherServices, path: &Path, hash: &str) -> bool {
-    let Ok(meta) = polyio::stat(path).await else {
+    let Ok(meta) = aetherio::stat(path).await else {
         return false;
     };
     if !meta.is_file() {
@@ -754,10 +754,10 @@ async fn edited_by_hand(services: &LauncherServices, path: &Path, hash: &str) ->
         return false;
     }
 
-    polyio::sha1_file(path)
+    aetherio::sha1_file(path)
         .await
-        .is_ok_and(|disk| polyio::normalize_hash(&disk) != hash)
-        && polyio::read_zip_file_entries(path, |_| false).await.is_ok()
+        .is_ok_and(|disk| aetherio::normalize_hash(&disk) != hash)
+        && aetherio::read_zip_file_entries(path, |_| false).await.is_ok()
 }
 
 const MASS_REMOVAL_FLOOR: usize = 3;
@@ -772,7 +772,7 @@ async fn hand_removed_content(
         return Vec::new();
     };
 
-    if polyio::read_dir(dir).await.is_err() {
+    if aetherio::read_dir(dir).await.is_err() {
         tracing::warn!(
             dir = %dir.display(),
             "cannot read the content folder; leaving activity alone"
@@ -790,7 +790,7 @@ async fn hand_removed_content(
         };
         considered += 1;
 
-        if polyio::symlink_metadata(dir.join(name)).await.is_ok() {
+        if aetherio::symlink_metadata(dir.join(name)).await.is_ok() {
             continue;
         }
 
@@ -1113,8 +1113,8 @@ async fn sync_mods_folder(services: &LauncherServices, cluster: &Cluster) -> boo
     for entry in &previous.entries {
         let path = cluster_dir.join(&entry.path);
         if !current.contains(&entry.path)
-            && polyio::symlink_metadata(&path).await.is_ok()
-            && !polyio::try_exists(&path).await.unwrap_or(true)
+            && aetherio::symlink_metadata(&path).await.is_ok()
+            && !aetherio::try_exists(&path).await.unwrap_or(true)
         {
             current.entries.push(entry.clone());
         }
@@ -1180,7 +1180,7 @@ async fn jars_on_disk(
     dir: &Path,
     linked: &[aetherhaven_content::packages::LinkedArtifactInfo],
 ) -> Option<Vec<(String, String)>> {
-    let mut entries = match polyio::read_dir(dir).await {
+    let mut entries = match aetherio::read_dir(dir).await {
         Ok(entries) => entries,
         Err(err) => {
             tracing::warn!(dir = %dir.display(), error = %err, "cannot read the mods folder");
@@ -1211,14 +1211,14 @@ async fn jars_on_disk(
             continue;
         }
 
-        let hash = match polyio::stat(&path).await {
+        let hash = match aetherio::stat(&path).await {
             Ok(meta) if !meta.is_file() || meta.len() == 0 => continue,
-            Ok(_) => polyio::sha1_file(&path).await,
+            Ok(_) => aetherio::sha1_file(&path).await,
             Err(err) => Err(err),
         };
         let hash = match hash {
-            Ok(hash) => polyio::normalize_hash(&hash),
-            Err(_) if !polyio::try_exists(&path).await.unwrap_or(true) => continue,
+            Ok(hash) => aetherio::normalize_hash(&hash),
+            Err(_) if !aetherio::try_exists(&path).await.unwrap_or(true) => continue,
             Err(err) => {
                 tracing::warn!(file = %name, error = %err, "cannot read a jar in the mods folder");
                 return None;
@@ -1226,7 +1226,7 @@ async fn jars_on_disk(
         };
 
         if !linked.iter().any(|link| link.hash == hash)
-            && let Err(err) = polyio::read_zip_file_entries(&path, |_| false).await
+            && let Err(err) = aetherio::read_zip_file_entries(&path, |_| false).await
         {
             tracing::debug!(file = %name, error = %err, "not a whole jar yet; leaving it for a later pass");
             continue;
@@ -1243,7 +1243,7 @@ async fn cache_link_hash(
     name: &str,
     linked: &[aetherhaven_content::packages::LinkedArtifactInfo],
 ) -> Option<String> {
-    let target = polyio::read_link(path).await.ok()?;
+    let target = aetherio::read_link(path).await.ok()?;
 
     for link in linked.iter().filter(|link| link.cluster_file_name == name) {
         let Some(artifact) = artifact_dao::get_artifact_by_hash(&services.db, &link.hash)
@@ -1264,7 +1264,7 @@ async fn cache_link_hash(
 }
 
 async fn detach_overwritten_link(services: &LauncherServices, path: &Path, old_hash: &str) -> bool {
-    let Ok(target) = polyio::read_link(path).await else {
+    let Ok(target) = aetherio::read_link(path).await else {
         return false;
     };
     let cached = artifact_dao::get_artifact_by_hash(&services.db, old_hash)
@@ -1432,7 +1432,7 @@ pub async fn dematerialize_content(
     for content_type in swap_types(mods_in_cluster) {
         let dir = game_dir.join(content_type.folder_name());
         let stash = cluster_dir.join(content_type.folder_name());
-        polyio::create_dir_all(&dir).await.ok();
+        aetherio::create_dir_all(&dir).await.ok();
 
         let ours = ours_in_folder(*content_type, &linked, current.as_ref());
         stash_content_files(&dir, &stash, *content_type, &ours).await;
@@ -1515,7 +1515,7 @@ async fn skip_shadowed_bundle_mods(
         let in_cluster = manifest::mods_live_in_cluster(&cluster_dir).await;
         for item in desired.iter().filter(|item| shadowed.contains(&item.hash)) {
             let newly = if in_cluster {
-                polyio::symlink_metadata(cluster_dir.join(item.relative_path()))
+                aetherio::symlink_metadata(cluster_dir.join(item.relative_path()))
                     .await
                     .is_ok()
             } else {
@@ -1603,7 +1603,7 @@ pub(crate) async fn jar_bundled_mod_ids(services: &LauncherServices, hash: &str)
     };
 
     let ids = aetherhaven_content::packages::read_jar_bundled_mod_ids(&jar).await;
-    if polyio::try_exists(&jar).await.unwrap_or(false) {
+    if aetherio::try_exists(&jar).await.unwrap_or(false) {
         BUNDLED.lock().unwrap().insert(hash.to_owned(), ids.clone());
     }
     ids
@@ -1688,7 +1688,7 @@ async fn cached_mod_id(hash: &str, jar: &Path) -> Option<JarModId> {
     }
 
     let id = aetherhaven_content::packages::local_manifest::read_jar_mod_id(jar).await;
-    if id.is_some() || polyio::try_exists(jar).await.unwrap_or(false) {
+    if id.is_some() || aetherio::try_exists(jar).await.unwrap_or(false) {
         IDS.lock().unwrap().insert(hash.to_owned(), id.clone());
     }
     id
@@ -1774,14 +1774,14 @@ async fn cached_file(
     .filter(|artifact| artifact.hash == hash)?;
 
     let path = artifact_absolute_path(&restored.path).ok()?;
-    polyio::try_exists(&path)
+    aetherio::try_exists(&path)
         .await
         .unwrap_or(false)
         .then_some(path)
 }
 
 async fn cache_intact(src: &Path, hash: &str, size_bytes: Option<i64>) -> bool {
-    let Ok(meta) = polyio::stat(src).await else {
+    let Ok(meta) = aetherio::stat(src).await else {
         return false;
     };
 
@@ -1791,9 +1791,9 @@ async fn cache_intact(src: &Path, hash: &str, size_bytes: Option<i64>) -> bool {
         return true;
     }
 
-    let intact = polyio::sha1_file(src)
+    let intact = aetherio::sha1_file(src)
         .await
-        .is_ok_and(|disk| polyio::normalize_hash(&disk) == hash);
+        .is_ok_and(|disk| aetherio::normalize_hash(&disk) == hash);
     if !intact {
         tracing::warn!(
             hash,
@@ -1821,7 +1821,7 @@ async fn held_in_place(
         let root = if in_cluster { cluster_dir } else { game_dir };
         let path = item.relative_path();
 
-        if !polyio::symlink_metadata(root.join(&path))
+        if !aetherio::symlink_metadata(root.join(&path))
             .await
             .is_ok_and(|meta| meta.file_type().is_file())
         {
@@ -1891,7 +1891,7 @@ async fn clear_unlinked_mods_once(services: &LauncherServices, cluster: &Cluster
     };
 
     let ours = names_linked_here(&linked, ContentType::Mod);
-    let Ok(mut entries) = polyio::read_dir(mods_dir).await else {
+    let Ok(mut entries) = aetherio::read_dir(mods_dir).await else {
         mark_repair_applied(services, &id).await;
         return;
     };
@@ -1942,7 +1942,7 @@ async fn drop_unmaterialized(
         .filter_map(|entry| entry.path.rsplit('/').next())
         .collect();
 
-    let Ok(mut read) = polyio::read_dir(dir).await else {
+    let Ok(mut read) = aetherio::read_dir(dir).await else {
         return;
     };
 
@@ -2008,7 +2008,7 @@ async fn clear_disabled_mod_files(services: &LauncherServices, cluster: &Cluster
 
     for name in disabled_mod_names(&linked) {
         let path = mods_dir.join(&name);
-        if polyio::symlink_metadata(&path).await.is_err() {
+        if aetherio::symlink_metadata(&path).await.is_err() {
             continue;
         }
 
@@ -2218,7 +2218,7 @@ async fn import_from_dir(
     discard_originals: bool,
 ) -> HashSet<String> {
     let mut failed = HashSet::new();
-    let Ok(mut entries) = polyio::read_dir(dir).await else {
+    let Ok(mut entries) = aetherio::read_dir(dir).await else {
         return failed;
     };
 
@@ -2275,7 +2275,7 @@ async fn adopt_file(
             file = %path.display(),
             "discarding stale launcher content; the cache still holds it"
         );
-        if let Err(err) = polyio::remove_file(path).await {
+        if let Err(err) = aetherio::remove_file(path).await {
             tracing::warn!(file = %path.display(), error = %err, "failed to discard stale content");
         }
         return None;
@@ -2299,7 +2299,7 @@ async fn discard_adopted_original(
     name: &str,
 ) {
     match artifact_absolute_path(&row.path) {
-        Ok(cached) if polyio::try_exists(&cached).await.unwrap_or(false) => {}
+        Ok(cached) if aetherio::try_exists(&cached).await.unwrap_or(false) => {}
         _ => {
             tracing::warn!(
                 file = name,
@@ -2309,16 +2309,16 @@ async fn discard_adopted_original(
         }
     }
 
-    if let Err(err) = polyio::remove_file(path).await {
+    if let Err(err) = aetherio::remove_file(path).await {
         tracing::warn!(file = name, error = %err, "failed to clear the adopted original");
     }
 }
 
 async fn is_stale_launcher_content(services: &LauncherServices, path: &Path) -> bool {
-    let Ok(hash) = polyio::sha1_file(path).await else {
+    let Ok(hash) = aetherio::sha1_file(path).await else {
         return false;
     };
-    let hash = polyio::normalize_hash(&hash);
+    let hash = aetherio::normalize_hash(&hash);
 
     artifact_dao::is_launcher_owned(&services.db, &hash)
         .await
@@ -2344,17 +2344,17 @@ async fn ensure_mods_link(cluster: &Cluster) {
         return;
     };
 
-    match polyio::symlink_metadata(&link).await {
+    match aetherio::symlink_metadata(&link).await {
         Ok(meta) if meta.file_type().is_symlink() => {
             let aimed_right = matches!(
-                (polyio::canonicalize(&link), polyio::canonicalize(&target)),
+                (aetherio::canonicalize(&link), aetherio::canonicalize(&target)),
                 (Ok(from), Ok(to)) if from == to
             );
             if aimed_right {
                 return;
             }
 
-            polyio::remove_symlink_dir(&link).await.ok();
+            aetherio::remove_symlink_dir(&link).await.ok();
         }
 
         Ok(_) => {
@@ -2369,12 +2369,12 @@ async fn ensure_mods_link(cluster: &Cluster) {
     }
 
     if let Some(parent) = link.parent() {
-        polyio::create_dir_all(parent).await.ok();
+        aetherio::create_dir_all(parent).await.ok();
         ensure_links_note(parent).await;
     }
-    polyio::create_dir_all(&target).await.ok();
+    aetherio::create_dir_all(&target).await.ok();
 
-    if let Err(err) = polyio::symlink_dir(&target, &link).await {
+    if let Err(err) = aetherio::symlink_dir(&target, &link).await {
         tracing::warn!(
             folder = %cluster.folder_name,
             error = %err,
@@ -2384,7 +2384,7 @@ async fn ensure_mods_link(cluster: &Cluster) {
 }
 
 async fn points_into_clusters_dir(path: &Path) -> bool {
-    let (Ok(target), Ok(root)) = (polyio::read_link(path).await, paths::clusters_dir()) else {
+    let (Ok(target), Ok(root)) = (aetherio::read_link(path).await, paths::clusters_dir()) else {
         return false;
     };
 
@@ -2398,7 +2398,7 @@ async fn prune_mods_links(services: &LauncherServices) {
         return;
     };
 
-    let Ok(mut entries) = polyio::read_dir(&root).await else {
+    let Ok(mut entries) = aetherio::read_dir(&root).await else {
         return;
     };
 
@@ -2427,7 +2427,7 @@ async fn prune_mods_links(services: &LauncherServices) {
             continue;
         }
 
-        match polyio::remove_symlink_dir(entry.path()).await {
+        match aetherio::remove_symlink_dir(entry.path()).await {
             Ok(()) => tracing::debug!(link = %name, "cleared mods link for a deleted cluster"),
             Err(err) => {
                 tracing::warn!(link = %name, error = %err, "failed to clear stale cluster mods link")
@@ -2447,13 +2447,13 @@ pub async fn write_allowed_symlinks(game_dir: &Path) -> LauncherResult<()> {
     // and its derivatives put /home behind /var/home), and a prefix the game
     // does not recognise makes it refuse every linked pack, so allow both
     let mut roots = vec![root.to_path_buf()];
-    if let Ok(canonical) = polyio::canonicalize(root)
+    if let Ok(canonical) = aetherio::canonicalize(root)
         && canonical != root
     {
         roots.push(canonical);
     }
 
-    polyio::write(
+    aetherio::write(
         game_dir.join(ALLOWED_SYMLINKS_NAME),
         allowed_symlinks_body(&roots),
     )
@@ -2481,13 +2481,13 @@ fn is_note(name: &str) -> bool {
 async fn ensure_links_note(dir: &Path) {
     let note = dir.join(LINKS_NOTE_NAME);
 
-    if polyio::try_exists(&note).await.unwrap_or(false) {
+    if aetherio::try_exists(&note).await.unwrap_or(false) {
         return;
     }
 
     let noun = ContentType::Mod.folder_name();
 
-    polyio::write(
+    aetherio::write(
         &note,
         format!(
             "PLEASE READ CAREFULLY!!!!\n\
@@ -2510,7 +2510,7 @@ async fn stash_content_files(
     content_type: ContentType,
     ours: &HashSet<String>,
 ) {
-    let Ok(mut entries) = polyio::read_dir(dir).await else {
+    let Ok(mut entries) = aetherio::read_dir(dir).await else {
         return;
     };
 
@@ -2567,7 +2567,7 @@ async fn restore_stashed(
     content_type: ContentType,
     ours: &HashSet<String>,
 ) {
-    let Ok(mut entries) = polyio::read_dir(stash).await else {
+    let Ok(mut entries) = aetherio::read_dir(stash).await else {
         return;
     };
 
@@ -2603,7 +2603,7 @@ async fn restore_stashed(
 
         let dest = dir.join(&name);
         let result = if file_type.is_dir() {
-            polyio::symlink_dir(&path, &dest).await.map_err(Into::into)
+            aetherio::symlink_dir(&path, &dest).await.map_err(Into::into)
         } else {
             link_or_copy(&path, &dest).await
         };
@@ -2620,31 +2620,31 @@ async fn restore_stashed(
 
 async fn remove_dir_or_file(path: &Path, file_type: FileType) {
     if file_type.is_dir() {
-        polyio::remove_dir_all(path).await.ok();
-    } else if polyio::remove_file(path).await.is_err() {
+        aetherio::remove_dir_all(path).await.ok();
+    } else if aetherio::remove_file(path).await.is_err() {
         // A Windows junction has to go through `remove_dir`
-        polyio::remove_symlink_dir(path).await.ok();
+        aetherio::remove_symlink_dir(path).await.ok();
     }
 }
 
 async fn move_entry(src: &Path, dest: &Path) -> LauncherResult<()> {
     if let Some(parent) = dest.parent() {
-        polyio::create_dir_all(parent).await.ok();
+        aetherio::create_dir_all(parent).await.ok();
     }
 
     // A stash from an earlier session is older than what the game just wrote
     // so it loses
-    if let Ok(meta) = polyio::symlink_metadata(dest).await {
+    if let Ok(meta) = aetherio::symlink_metadata(dest).await {
         remove_dir_or_file(dest, meta.file_type()).await;
     }
 
-    if polyio::rename(src, dest).await.is_ok() {
+    if aetherio::rename(src, dest).await.is_ok() {
         return Ok(());
     }
 
     // `rename` cannot cross devices fall back to a copy for plain files
-    polyio::copy(src, dest).await?;
-    polyio::remove_file(src).await.ok();
+    aetherio::copy(src, dest).await?;
+    aetherio::remove_file(src).await.ok();
     Ok(())
 }
 
@@ -2672,11 +2672,11 @@ async fn drop_stale_notes(roots: &[&Path], mods_swapped: bool) {
 
 async fn drop_note(dir: &Path) {
     let note = dir.join(EMPTY_NOTE_NAME);
-    if polyio::symlink_metadata(&note).await.is_err() {
+    if aetherio::symlink_metadata(&note).await.is_err() {
         return;
     }
 
-    match polyio::remove_file(&note).await {
+    match aetherio::remove_file(&note).await {
         Ok(()) => tracing::debug!(dir = %dir.display(), "removed a stale empty-folder note"),
         // Nothing downstream reads it the next launch tries again
         Err(err) => tracing::debug!(
@@ -2690,11 +2690,11 @@ async fn drop_note(dir: &Path) {
 async fn ensure_note(dir: &Path, content_type: ContentType) {
     let note = dir.join(EMPTY_NOTE_NAME);
 
-    if polyio::try_exists(&note).await.unwrap_or(false) {
+    if aetherio::try_exists(&note).await.unwrap_or(false) {
         return;
     }
 
-    polyio::write(&note, {
+    aetherio::write(&note, {
         let noun = content_type.folder_name();
 
         format!(
@@ -2736,31 +2736,31 @@ pub async fn link_cluster_logs(cluster: &Cluster, game_dir: &Path) {
 }
 
 async fn redirect_dir(shared: &Path, target: &Path) -> LauncherResult<()> {
-    polyio::create_dir_all(target).await.ok();
+    aetherio::create_dir_all(target).await.ok();
 
-    match polyio::symlink_metadata(shared).await {
+    match aetherio::symlink_metadata(shared).await {
         Ok(meta) if meta.file_type().is_symlink() => {
-            polyio::remove_symlink_dir(shared).await?;
+            aetherio::remove_symlink_dir(shared).await?;
         }
 
         // A real directory likely the user's so salvage its contents into the
         // cluster folder instead of deleting it
         Ok(meta) if meta.is_dir() => {
             move_dir_contents(shared, target).await;
-            polyio::remove_dir_all(shared).await.ok();
+            aetherio::remove_dir_all(shared).await.ok();
         }
 
         Ok(_) => {
-            polyio::remove_file(shared).await.ok();
+            aetherio::remove_file(shared).await.ok();
         }
 
         Err(_) => {}
     }
 
     if let Some(parent) = shared.parent() {
-        polyio::create_dir_all(parent).await.ok();
+        aetherio::create_dir_all(parent).await.ok();
     }
-    polyio::symlink_dir(target, shared).await?;
+    aetherio::symlink_dir(target, shared).await?;
     Ok(())
 }
 
@@ -2769,9 +2769,9 @@ pub async fn unlink_cluster_logs(game_dir: &Path) {
     for name in REDIRECTED_DIRS {
         let shared = game_dir.join(name);
 
-        match polyio::symlink_metadata(&shared).await {
+        match aetherio::symlink_metadata(&shared).await {
             Ok(meta) if meta.file_type().is_symlink() => {
-                if let Err(err) = polyio::remove_symlink_dir(&shared).await {
+                if let Err(err) = aetherio::remove_symlink_dir(&shared).await {
                     tracing::warn!(dir = name, error = %err, "failed to unlink shared log dir");
                 }
             }
@@ -2787,7 +2787,7 @@ pub async fn unlink_cluster_logs(game_dir: &Path) {
 }
 
 async fn move_dir_contents(from: &Path, to: &Path) {
-    let Ok(mut entries) = polyio::read_dir(from).await else {
+    let Ok(mut entries) = aetherio::read_dir(from).await else {
         return;
     };
 
@@ -2799,7 +2799,7 @@ async fn move_dir_contents(from: &Path, to: &Path) {
 
         let dest = to.join(name);
 
-        if polyio::rename(&src, &dest).await.is_err() {
+        if aetherio::rename(&src, &dest).await.is_err() {
             tracing::warn!(file = %src.display(), "failed to salvage leaked log file");
         }
     }
@@ -2813,13 +2813,13 @@ async fn sync_fabric_dep_overrides(cluster: &Cluster, game_dir: &Path) -> Launch
         return Ok(());
     }
 
-    if polyio::try_exists(&src).await.unwrap_or(false) {
+    if aetherio::try_exists(&src).await.unwrap_or(false) {
         if let Some(parent) = dest.parent() {
-            polyio::create_dir_all(parent).await.ok();
+            aetherio::create_dir_all(parent).await.ok();
         }
-        polyio::copy(&src, &dest).await?;
-    } else if polyio::try_exists(&dest).await.unwrap_or(false) {
-        polyio::remove_file(&dest).await.ok();
+        aetherio::copy(&src, &dest).await?;
+    } else if aetherio::try_exists(&dest).await.unwrap_or(false) {
+        aetherio::remove_file(&dest).await.ok();
     }
 
     Ok(())
@@ -2924,17 +2924,17 @@ mod tests {
     /// end up in the cluster rather than the shared dir
     #[tokio::test]
     async fn shader_settings_survive_a_session() {
-        let root = polyio::testing::ScratchDir::new("shader_settings");
+        let root = aetherio::testing::ScratchDir::new("shader_settings");
         let shared = root.join("shared").join("shaderpacks");
         let stash = root.join("cluster").join("shaderpacks");
-        polyio::create_dir_all(&shared).await.unwrap();
+        aetherio::create_dir_all(&shared).await.unwrap();
 
         let ours = names(&["bsl.zip"]);
 
-        polyio::write(shared.join("bsl.zip"), b"pack".as_slice())
+        aetherio::write(shared.join("bsl.zip"), b"pack".as_slice())
             .await
             .unwrap();
-        polyio::write(shared.join("bsl.zip.txt"), b"BLOOM=off".as_slice())
+        aetherio::write(shared.join("bsl.zip.txt"), b"BLOOM=off".as_slice())
             .await
             .unwrap();
 
@@ -2942,7 +2942,7 @@ mod tests {
         assert!(!shared.join("bsl.zip").exists(), "managed pack left behind");
         assert!(!shared.join("bsl.zip.txt").exists(), "sidecar left behind");
         assert_eq!(
-            polyio::read_to_string(stash.join("bsl.zip.txt"))
+            aetherio::read_to_string(stash.join("bsl.zip.txt"))
                 .await
                 .unwrap(),
             "BLOOM=off"
@@ -2950,17 +2950,17 @@ mod tests {
 
         restore_stashed(&stash, &shared, ContentType::Shader, &ours).await;
         assert_eq!(
-            polyio::read_to_string(shared.join("bsl.zip.txt"))
+            aetherio::read_to_string(shared.join("bsl.zip.txt"))
                 .await
                 .unwrap(),
             "BLOOM=off"
         );
 
-        polyio::write(stash.join("bsl.zip.txt"), b"BLOOM=on".as_slice())
+        aetherio::write(stash.join("bsl.zip.txt"), b"BLOOM=on".as_slice())
             .await
             .unwrap();
         assert_eq!(
-            polyio::read_to_string(shared.join("bsl.zip.txt"))
+            aetherio::read_to_string(shared.join("bsl.zip.txt"))
                 .await
                 .unwrap(),
             "BLOOM=on"
@@ -2971,13 +2971,13 @@ mod tests {
 
     #[tokio::test]
     async fn unpacked_dirs_move_into_the_cluster() {
-        let root = polyio::testing::ScratchDir::new("unpacked");
+        let root = aetherio::testing::ScratchDir::new("unpacked");
         let shared = root.join("shared").join("shaderpacks");
         let stash = root.join("cluster").join("shaderpacks");
-        polyio::create_dir_all(shared.join("Loose/shaders"))
+        aetherio::create_dir_all(shared.join("Loose/shaders"))
             .await
             .unwrap();
-        polyio::write(
+        aetherio::write(
             shared.join("Loose/shaders/final.fsh"),
             b"void main".as_slice(),
         )
@@ -3001,11 +3001,11 @@ mod tests {
 
     #[tokio::test]
     async fn note_is_never_stashed() {
-        let root = polyio::testing::ScratchDir::new("note");
+        let root = aetherio::testing::ScratchDir::new("note");
         let shared = root.join("shared").join("mods");
         let stash = root.join("cluster").join("mods");
-        polyio::create_dir_all(&shared).await.unwrap();
-        polyio::write(shared.join(EMPTY_NOTE_NAME), b"hi".as_slice())
+        aetherio::create_dir_all(&shared).await.unwrap();
+        aetherio::write(shared.join(EMPTY_NOTE_NAME), b"hi".as_slice())
             .await
             .unwrap();
 
@@ -3022,12 +3022,12 @@ mod tests {
     /// because that is what a managed file looks like on Windows
     #[tokio::test]
     async fn removed_package_is_pruned_at_the_next_launch() {
-        let root = polyio::testing::ScratchDir::new("prune_removed");
+        let root = aetherio::testing::ScratchDir::new("prune_removed");
         let game_dir = root.path();
-        polyio::create_dir_all(game_dir.join("mods")).await.unwrap();
+        aetherio::create_dir_all(game_dir.join("mods")).await.unwrap();
 
         let jar = game_dir.join("mods").join("removed.jar");
-        polyio::write(&jar, b"jar".as_slice()).await.unwrap();
+        aetherio::write(&jar, b"jar".as_slice()).await.unwrap();
 
         let previous = manifest_of(1, &["mods/removed.jar", "mods/kept.jar"]);
         let keep: HashSet<String> = ["mods/kept.jar".to_string()].into_iter().collect();
@@ -3035,7 +3035,7 @@ mod tests {
         prune_previous(game_dir, Some(&previous), &keep).await;
 
         assert!(
-            polyio::symlink_metadata(&jar).await.is_err(),
+            aetherio::symlink_metadata(&jar).await.is_err(),
             "a removed package must not survive into the next session"
         );
 
@@ -3046,12 +3046,12 @@ mod tests {
     /// clear not the user's to keep
     #[tokio::test]
     async fn another_clusters_content_is_cleared_not_stashed() {
-        let root = polyio::testing::ScratchDir::new("cross_cluster");
+        let root = aetherio::testing::ScratchDir::new("cross_cluster");
         let game_dir = root.path();
-        polyio::create_dir_all(game_dir.join("mods")).await.unwrap();
+        aetherio::create_dir_all(game_dir.join("mods")).await.unwrap();
 
         let jar = game_dir.join("mods").join("theirs.jar");
-        polyio::write(&jar, b"jar".as_slice()).await.unwrap();
+        aetherio::write(&jar, b"jar".as_slice()).await.unwrap();
 
         prune_previous(
             game_dir,
@@ -3060,7 +3060,7 @@ mod tests {
         )
         .await;
 
-        assert!(polyio::symlink_metadata(&jar).await.is_err());
+        assert!(aetherio::symlink_metadata(&jar).await.is_err());
 
         std::fs::remove_dir_all(root.path()).ok();
     }
@@ -3069,12 +3069,12 @@ mod tests {
     /// rather than deleted
     #[tokio::test]
     async fn user_files_are_never_pruned() {
-        let root = polyio::testing::ScratchDir::new("user_file");
+        let root = aetherio::testing::ScratchDir::new("user_file");
         let game_dir = root.path();
-        polyio::create_dir_all(game_dir.join("mods")).await.unwrap();
+        aetherio::create_dir_all(game_dir.join("mods")).await.unwrap();
 
         let mine = game_dir.join("mods").join("handmade.jar");
-        polyio::write(&mine, b"jar".as_slice()).await.unwrap();
+        aetherio::write(&mine, b"jar".as_slice()).await.unwrap();
 
         prune_previous(
             game_dir,
@@ -3095,18 +3095,18 @@ mod tests {
     /// since been removed must not be linked back into the game
     #[tokio::test]
     async fn stray_content_in_the_stash_is_not_restored() {
-        let root = polyio::testing::ScratchDir::new("stray_content");
+        let root = aetherio::testing::ScratchDir::new("stray_content");
         let shared = root.join("shared").join("mods");
         let stash = root.join("cluster").join("mods");
-        polyio::create_dir_all(&shared).await.unwrap();
-        polyio::create_dir_all(&stash).await.unwrap();
+        aetherio::create_dir_all(&shared).await.unwrap();
+        aetherio::create_dir_all(&stash).await.unwrap();
 
         // A leftover from the old scheme an ordinary file (which is what a
         // Windows hard link looks like) with no database row to explain it
-        polyio::write(stash.join("removed.jar"), b"jar".as_slice())
+        aetherio::write(stash.join("removed.jar"), b"jar".as_slice())
             .await
             .unwrap();
-        polyio::write(stash.join("options.txt"), b"k=v".as_slice())
+        aetherio::write(stash.join("options.txt"), b"k=v".as_slice())
             .await
             .unwrap();
 
@@ -3132,26 +3132,26 @@ mod tests {
     /// same-typed `&Path`s a swap would quietly delete a user's files
     #[tokio::test]
     async fn a_session_never_removes_anything_from_the_cluster_folder() {
-        let root = polyio::testing::ScratchDir::new("stash_is_sacred");
+        let root = aetherio::testing::ScratchDir::new("stash_is_sacred");
         let shared = root.join("shared").join("mods");
         let stash = root.join("cluster").join("mods");
-        polyio::create_dir_all(&shared).await.unwrap();
-        polyio::create_dir_all(&stash).await.unwrap();
+        aetherio::create_dir_all(&shared).await.unwrap();
+        aetherio::create_dir_all(&stash).await.unwrap();
 
-        polyio::write(stash.join("options.txt"), b"k=v".as_slice())
+        aetherio::write(stash.join("options.txt"), b"k=v".as_slice())
             .await
             .unwrap();
-        polyio::write(stash.join("leftover.jar"), b"jar".as_slice())
+        aetherio::write(stash.join("leftover.jar"), b"jar".as_slice())
             .await
             .unwrap();
-        polyio::create_dir_all(stash.join("unpacked"))
+        aetherio::create_dir_all(stash.join("unpacked"))
             .await
             .unwrap();
-        polyio::write(stash.join("unpacked").join("inner.txt"), b"x".as_slice())
+        aetherio::write(stash.join("unpacked").join("inner.txt"), b"x".as_slice())
             .await
             .unwrap();
 
-        polyio::write(shared.join("managed.jar"), b"jar".as_slice())
+        aetherio::write(shared.join("managed.jar"), b"jar".as_slice())
             .await
             .unwrap();
 
@@ -3180,7 +3180,7 @@ mod tests {
 
     async fn dir_entries(dir: &Path) -> Vec<String> {
         let mut names = Vec::new();
-        let Ok(mut entries) = polyio::read_dir(dir).await else {
+        let Ok(mut entries) = aetherio::read_dir(dir).await else {
             return names;
         };
         while let Ok(Some(entry)) = entries.next_entry().await {
@@ -3246,12 +3246,12 @@ mod tests {
         assert!(!body.contains("'s folder"), "{body}");
     }
 
-    async fn mods_scratch(name: &str, present: &[&str]) -> polyio::testing::ScratchDir {
-        let root = polyio::testing::ScratchDir::new(name);
-        polyio::create_dir_all(root.path()).await.unwrap();
+    async fn mods_scratch(name: &str, present: &[&str]) -> aetherio::testing::ScratchDir {
+        let root = aetherio::testing::ScratchDir::new(name);
+        aetherio::create_dir_all(root.path()).await.unwrap();
 
         for file in present {
-            polyio::write(root.join(file), b"jar".as_slice())
+            aetherio::write(root.join(file), b"jar".as_slice())
                 .await
                 .unwrap();
         }
@@ -3496,16 +3496,16 @@ mod tests {
 
     #[tokio::test]
     async fn stale_notes_go_but_the_folder_is_left_alone() {
-        let root = polyio::testing::ScratchDir::new("stale_notes");
+        let root = aetherio::testing::ScratchDir::new("stale_notes");
         let dir = root.path();
 
         for folder in ["mods", "resourcepacks", "shaderpacks"] {
             let sub = dir.join(folder);
-            polyio::create_dir_all(&sub).await.unwrap();
-            polyio::write(sub.join(EMPTY_NOTE_NAME), b"stale".as_slice())
+            aetherio::create_dir_all(&sub).await.unwrap();
+            aetherio::write(sub.join(EMPTY_NOTE_NAME), b"stale".as_slice())
                 .await
                 .unwrap();
-            polyio::write(sub.join("keep.jar"), b"jar".as_slice())
+            aetherio::write(sub.join("keep.jar"), b"jar".as_slice())
                 .await
                 .unwrap();
         }
@@ -3523,17 +3523,17 @@ mod tests {
 
     #[tokio::test]
     async fn a_swapped_mods_folder_keeps_its_note() {
-        let root = polyio::testing::ScratchDir::new("swapped_note");
+        let root = aetherio::testing::ScratchDir::new("swapped_note");
         let dir = root.path();
 
         let mods = dir.join("mods");
         let packs = dir.join("resourcepacks");
-        polyio::create_dir_all(&mods).await.unwrap();
-        polyio::create_dir_all(&packs).await.unwrap();
-        polyio::write(mods.join(EMPTY_NOTE_NAME), b"stale".as_slice())
+        aetherio::create_dir_all(&mods).await.unwrap();
+        aetherio::create_dir_all(&packs).await.unwrap();
+        aetherio::write(mods.join(EMPTY_NOTE_NAME), b"stale".as_slice())
             .await
             .unwrap();
-        polyio::write(packs.join(EMPTY_NOTE_NAME), b"stale".as_slice())
+        aetherio::write(packs.join(EMPTY_NOTE_NAME), b"stale".as_slice())
             .await
             .unwrap();
 

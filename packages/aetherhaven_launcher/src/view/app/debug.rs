@@ -801,7 +801,7 @@ const STATUS_PRESETS: [(&str, IconType, ServiceStatus); 4] = [
         },
     ),
     (
-        "Polyfrost down",
+        "AetherHaven down",
         IconType::AlertCircle,
         ServiceStatus {
             online: true,

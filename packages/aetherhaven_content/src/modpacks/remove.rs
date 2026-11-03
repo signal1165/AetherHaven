@@ -163,7 +163,7 @@ pub(crate) async fn imported_wants(cluster: &ClusterRow) -> Vec<(String, WantedF
     let Ok(dir) = paths::cluster_dir(&cluster.folder_name) else {
         return Vec::new();
     };
-    let Ok(bytes) = polyio::read(dir.join(IMPORTED_LIST)).await else {
+    let Ok(bytes) = aetherio::read(dir.join(IMPORTED_LIST)).await else {
         return Vec::new();
     };
     serde_json::from_slice::<Vec<ImportedWants>>(&bytes)

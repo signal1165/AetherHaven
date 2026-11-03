@@ -9,18 +9,18 @@ pub const MODRINTH_API_URL: &str = "https://api.modrinth.com";
 pub const MODRINTH_CDN_PREFIX: &str = "https://cdn.modrinth.com/data/";
 pub const CURSEFORGE_API_URL: &str = "https://api.curseforge.com/v1";
 pub const CURSEFORGE_GAME_ID: u32 = 432;
-pub const METADATA_API_URL: &str = "https://meta.polyfrost.org";
+pub const METADATA_API_URL: &str = "https://services.aetherhaven.invalid/metadata";
 pub const MCLOGS_API_URL: &str = "https://api.mclo.gs/1";
 pub const SKYCLIENT_BASE_URL: &str =
     "https://raw.githubusercontent.com/SkyblockClient/SkyblockClient-REPO/refs/heads/main/v1";
-pub const META_URL_BASE: &str = "https://data-v2.polyfrost.org";
-pub const TOS_URL: &str = "https://polyfrost.org/legal/terms";
-pub const PRIVACY_URL: &str = "https://polyfrost.org/legal/privacy";
-pub const PLUS_BACKEND_URL: &str = "https://plus.polyfrost.org";
+pub const META_URL_BASE: &str = "https://services.aetherhaven.invalid/content";
+pub const TOS_URL: &str = "https://github.com/signal1165/AetherHaven/blob/aetherhaven-complete/TERMS.md";
+pub const PRIVACY_URL: &str = "https://github.com/signal1165/AetherHaven/blob/aetherhaven-complete/PRIVACY.md";
+pub const PLUS_BACKEND_URL: &str = "https://services.aetherhaven.invalid/account";
 pub const CRASH_DATA_URL: &str =
-    "https://raw.githubusercontent.com/Polyfrost/CrashData/refs/heads/main/crashes.json";
+    "https://services.aetherhaven.invalid/crashes.json";
 
-pub const DISCORD_URL: &str = "https://discord.com/invite/polyfrost";
+pub const DISCORD_URL: &str = "https://github.com/signal1165/AetherHaven/discussions";
 
 pub const SENTRY_DSN: &str = match option_env!("AETHERHAVEN_SENTRY_DSN") {
     Some(dsn) => dsn,

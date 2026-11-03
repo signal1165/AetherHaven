@@ -2,10 +2,10 @@ blank_issues_enabled: true
 contact_links:
   - name: Discord
     about: Ask questions or share feature requests on our Discord Server.
-    url: https://polyfrost.org/discord
-  - name: Polyfrost Documentation
-    about: Useful documentation about Polyfrost, OneConfig, and other Polyfrost projects.
+    url: https://github.com/signal1165/AetherHaven/discussions
+  - name: AetherHaven Documentation
+    about: Useful documentation about AetherHaven, OneConfig, and other AetherHaven projects.
     url: https://github.com/signal1165/AetherHaven
-  - name: Polyfrost Docs^2
-    about: Useful documentation about how you can contribute to Polyfrost projects.
-    url: https://contributing.polyfrost.org
+  - name: AetherHaven Docs^2
+    about: Useful documentation about how you can contribute to AetherHaven projects.
+    url: https://github.com/signal1165/AetherHaven/blob/aetherhaven-complete/CONTRIBUTING.md

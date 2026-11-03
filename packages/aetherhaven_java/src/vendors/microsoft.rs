@@ -3,7 +3,7 @@ use reqwest::{Method, Request};
 use url::Url;
 
 use aetherhaven_net::RequestClient;
-use polyio::Checksum;
+use aetherio::Checksum;
 
 use crate::data::{JavaPackage, PackageArchive};
 use crate::error::JavaResult;
@@ -228,7 +228,7 @@ mod tests {
 
         assert_eq!(build.filename, "microsoft-jdk-21.0.12-windows-x64.zip");
         assert_eq!(build.java_version, vec![21, 0, 12]);
-        assert_eq!(build.checksum.algorithm, polyio::ChecksumAlgorithm::Sha256);
+        assert_eq!(build.checksum.algorithm, aetherio::ChecksumAlgorithm::Sha256);
         assert!(build.checksum.is_well_formed());
     }
 

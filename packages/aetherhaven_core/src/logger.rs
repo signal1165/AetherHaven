@@ -27,7 +27,7 @@ const APP_TARGETS: &[&str] = &[
     "aetherhaven_mc",
     "aetherhaven_net",
     "aetherhaven_services",
-    "polyio",
+    "aetherio",
 ];
 
 /// Pinned regardless of the base level because the debug filter raises the base

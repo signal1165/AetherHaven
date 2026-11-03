@@ -47,12 +47,12 @@ pub async fn detect_at(root: &Path) -> LauncherResult<Option<ExternalDetection>>
 
     // The app keeps the database in WAL mode and may well be running, so a
     // snapshot (with its WAL) is read instead of the live file
-    let snapshot = polyio::tempdir().await?;
+    let snapshot = aetherio::tempdir().await?;
     for suffix in ["", "-wal", "-shm"] {
         let name = format!("{DB_FILE}{suffix}");
         let src = root.join(&name);
         if src.is_file() {
-            polyio::copy(&src, snapshot.dir_path().join(&name)).await?;
+            aetherio::copy(&src, snapshot.dir_path().join(&name)).await?;
         }
     }
 
@@ -452,7 +452,7 @@ mod tests {
     use super::*;
 
     async fn make_db(root: &Path, schema: &'static str) -> SqlitePool {
-        polyio::create_dir_all(root).await.unwrap();
+        aetherio::create_dir_all(root).await.unwrap();
         let pool = SqlitePoolOptions::new()
             .max_connections(1)
             .connect_with(
@@ -468,7 +468,7 @@ mod tests {
 
     #[tokio::test]
     async fn reads_the_legacy_profiles_table() {
-        let tmp = polyio::tempdir().await.unwrap();
+        let tmp = aetherio::tempdir().await.unwrap();
         let root = tmp.dir_path();
         let pool = make_db(
             root,
@@ -517,7 +517,7 @@ mod tests {
 
     #[tokio::test]
     async fn extra_link_rows_and_broken_overrides_keep_one_instance_each() {
-        let tmp = polyio::tempdir().await.unwrap();
+        let tmp = aetherio::tempdir().await.unwrap();
         let root = tmp.dir_path();
         let pool = make_db(
             root,
@@ -554,7 +554,7 @@ mod tests {
 
     #[tokio::test]
     async fn reads_the_instances_schema() {
-        let tmp = polyio::tempdir().await.unwrap();
+        let tmp = aetherio::tempdir().await.unwrap();
         let root = tmp.dir_path();
         let pool = make_db(
             root,

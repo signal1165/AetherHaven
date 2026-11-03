@@ -17,7 +17,7 @@ path = "src/lib.rs"
 aetherhaven_common.workspace = true
 aetherhaven_events.workspace = true
 aetherhaven_net.workspace = true
-polyio.workspace = true
+aetherio.workspace = true
 
 async-trait.workspace = true
 async-tempfile.workspace = true

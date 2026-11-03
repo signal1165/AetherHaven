@@ -10,7 +10,7 @@ use aetherhaven_common::paths;
 use aetherhaven_net::RequestClient;
 use aetherhaven_net::RequestError;
 use aetherhaven_net::{EtagPolicy, fetch_cached};
-use polyio::sha1_bytes;
+use aetherio::sha1_bytes;
 
 pub const DEFAULT_IMAGE_EDGE: u32 = 1200;
 
@@ -103,7 +103,7 @@ impl ImageCacheStore {
 
         let path = Self::disk_path(url, max_edge)?;
 
-        if let Ok(bytes) = polyio::read(&path).await {
+        if let Ok(bytes) = aetherio::read(&path).await {
             let bytes = Bytes::from(bytes);
             self.memory.lock().await.insert(mem_key, bytes.clone());
             return Ok(bytes);
@@ -111,15 +111,15 @@ impl ImageCacheStore {
 
         // icon unpacked for a jar is already on disk
         let raw = match paths::local_image_path(url) {
-            Some(source) => Bytes::from(polyio::read(&source).await?),
+            Some(source) => Bytes::from(aetherio::read(&source).await?),
             None => download(net, url).await?,
         };
         let bytes = downscale_if_oversized(raw, max_edge).await;
 
         if let Some(parent) = path.parent() {
-            polyio::create_dir_all(parent).await?;
+            aetherio::create_dir_all(parent).await?;
         }
-        if let Err(err) = polyio::write(&path, &bytes).await {
+        if let Err(err) = aetherio::write(&path, &bytes).await {
             tracing::warn!("failed to persist cached image for {url}: {err}");
         }
 
@@ -148,7 +148,7 @@ impl ImageCacheStore {
         }
 
         let raw = match paths::local_image_path(url) {
-            Some(source) => Bytes::from(polyio::read(&source).await?),
+            Some(source) => Bytes::from(aetherio::read(&source).await?),
             None => download(net, url).await?,
         };
 
@@ -157,9 +157,9 @@ impl ImageCacheStore {
 
         for ((_, path), bytes) in missing.into_iter().zip(sized) {
             if let Some(parent) = path.parent() {
-                polyio::create_dir_all(parent).await?;
+                aetherio::create_dir_all(parent).await?;
             }
-            if let Err(err) = polyio::write(&path, &bytes).await {
+            if let Err(err) = aetherio::write(&path, &bytes).await {
                 tracing::warn!("failed to persist prefetched image for {url}: {err}");
             }
         }
@@ -178,7 +178,7 @@ impl ImageCacheStore {
 
         let source = Self::source_path(url)?;
         if let Some(parent) = source.parent() {
-            polyio::create_dir_all(parent).await?;
+            aetherio::create_dir_all(parent).await?;
         }
 
         let Some(fetched) = fetch_cached(net, url, &source, EtagPolicy::CommitNow).await? else {
@@ -207,9 +207,9 @@ impl ImageCacheStore {
 
         for ((edge, path), bytes) in stale.into_iter().zip(sized) {
             if let Some(parent) = path.parent() {
-                polyio::create_dir_all(parent).await?;
+                aetherio::create_dir_all(parent).await?;
             }
-            if let Err(err) = polyio::write(&path, &bytes).await {
+            if let Err(err) = aetherio::write(&path, &bytes).await {
                 tracing::warn!("failed to persist refreshed image for {url}: {err}");
                 continue;
             }

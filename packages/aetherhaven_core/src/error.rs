@@ -9,7 +9,7 @@ pub enum LauncherError {
     SqlError(#[from] sqlx::Error),
 
     #[error(transparent)]
-    IoError(#[from] polyio::IOError),
+    IoError(#[from] aetherio::IOError),
 
     #[error(transparent)]
     StdIoError(#[from] std::io::Error),
@@ -181,10 +181,10 @@ impl SentryExclusion for reqwest::Error {
     }
 }
 
-impl SentryExclusion for polyio::IOError {
+impl SentryExclusion for aetherio::IOError {
     fn is_sentry_excluded(&self) -> bool {
         match self {
-            polyio::IOError::IOError(source) | polyio::IOError::PathIOError { source, .. } => {
+            aetherio::IOError::IOError(source) | aetherio::IOError::PathIOError { source, .. } => {
                 source.is_sentry_excluded()
             }
             _ => false,
@@ -201,7 +201,7 @@ mod tests {
     /// Raw OS error rather than a synthesized `ErrorKind` same kind but only
     /// this one renders the `(os error 2)` text users report
     fn not_found(path: &str) -> LauncherError {
-        LauncherError::IoError(polyio::IOError::PathIOError {
+        LauncherError::IoError(aetherio::IOError::PathIOError {
             source: std::io::Error::from_raw_os_error(2),
             path: path.to_string(),
         })
@@ -218,7 +218,7 @@ mod tests {
 
     #[test]
     fn a_not_found_nested_several_layers_deep_is_still_found() {
-        let err = LauncherError::McError(aetherhaven_mc::McError::Io(polyio::IOError::PathIOError {
+        let err = LauncherError::McError(aetherhaven_mc::McError::Io(aetherio::IOError::PathIOError {
             source: std::io::Error::from(std::io::ErrorKind::NotFound),
             path: "metadata/libraries/foo.jar".to_string(),
         }));
@@ -262,7 +262,7 @@ mod tests {
             std::io::ErrorKind::ConnectionRefused,
             std::io::ErrorKind::TimedOut,
         ] {
-            let err = LauncherError::IoError(polyio::IOError::PathIOError {
+            let err = LauncherError::IoError(aetherio::IOError::PathIOError {
                 source: std::io::Error::from(kind),
                 path: "metadata/assets".to_string(),
             });

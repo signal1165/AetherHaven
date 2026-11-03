@@ -26,7 +26,7 @@ pub struct InstanceIdentity {
 }
 
 pub async fn read(cluster_dir: &Path) -> Option<InstanceIdentity> {
-    let bytes = polyio::read(cluster_dir.join(paths::INSTANCE_FILE))
+    let bytes = aetherio::read(cluster_dir.join(paths::INSTANCE_FILE))
         .await
         .ok()?;
     match serde_json::from_slice(&bytes) {
@@ -43,12 +43,12 @@ pub async fn write(cluster_dir: &Path, identity: &InstanceIdentity) {
         return;
     };
 
-    if !polyio::try_exists(cluster_dir).await.unwrap_or(false) {
+    if !aetherio::try_exists(cluster_dir).await.unwrap_or(false) {
         tracing::warn!(dir = %cluster_dir.display(), "cluster folder is missing; not writing the instance file");
         return;
     }
 
-    if let Err(err) = polyio::write_atomic(cluster_dir.join(paths::INSTANCE_FILE), &bytes).await {
+    if let Err(err) = aetherio::write_atomic(cluster_dir.join(paths::INSTANCE_FILE), &bytes).await {
         tracing::warn!(dir = %cluster_dir.display(), error = %err, "failed to write the instance file");
     }
 }

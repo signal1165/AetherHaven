@@ -78,7 +78,7 @@ pub async fn detect_at(
         root.to_path_buf()
     };
 
-    let global = match polyio::read_to_string(root.join(config_file(launcher))).await {
+    let global = match aetherio::read_to_string(root.join(config_file(launcher))).await {
         Ok(text) => Ini::parse(&text),
         Err(_) => Ini::default(),
     };
@@ -93,7 +93,7 @@ pub async fn detect_at(
     let groups = read_groups(&instances_dir).await;
 
     let mut instances = Vec::new();
-    let mut entries = polyio::read_dir(&instances_dir).await?;
+    let mut entries = aetherio::read_dir(&instances_dir).await?;
     while let Some(entry) = entries.next_entry().await? {
         let folder = entry.file_name().to_string_lossy().into_owned();
         // `.tmp`, `_LAUNCHER_TEMP` and friends are the launcher's scratch space
@@ -153,7 +153,7 @@ struct GroupEntry {
 
 /// Instance folder name to the groups it sits in
 async fn read_groups(instances_dir: &Path) -> HashMap<String, Vec<String>> {
-    let Ok(file) = polyio::read_json::<GroupsFile>(instances_dir.join("instgroups.json")).await
+    let Ok(file) = aetherio::read_json::<GroupsFile>(instances_dir.join("instgroups.json")).await
     else {
         return HashMap::new();
     };
@@ -260,7 +260,7 @@ async fn uses_ornithe(pack: &PackFile, dir: &Path) -> bool {
     {
         return true;
     }
-    let Ok(mut entries) = polyio::read_dir(dir.join("patches")).await else {
+    let Ok(mut entries) = aetherio::read_dir(dir.join("patches")).await else {
         return false;
     };
     while let Ok(Some(entry)) = entries.next_entry().await {
@@ -268,7 +268,7 @@ async fn uses_ornithe(pack: &PackFile, dir: &Path) -> bool {
         if path.extension().and_then(|ext| ext.to_str()) != Some("json") {
             continue;
         }
-        if let Ok(text) = polyio::read_to_string(&path).await
+        if let Ok(text) = aetherio::read_to_string(&path).await
             && text.contains(ORNITHE_GROUP)
         {
             return true;
@@ -294,7 +294,7 @@ async fn read_instance(
     if !cfg_path.is_file() {
         return Ok(None);
     }
-    let cfg = Ini::parse(&polyio::read_to_string(&cfg_path).await?);
+    let cfg = Ini::parse(&aetherio::read_to_string(&cfg_path).await?);
 
     // Pre-2013 MultiMC instances use a jar-modding layout nothing can launch
     if cfg.get("InstanceType").is_some_and(|t| t != "OneSix") {
@@ -302,7 +302,7 @@ async fn read_instance(
         return Ok(None);
     }
 
-    let pack: PackFile = match polyio::read_json(dir.join("mmc-pack.json")).await {
+    let pack: PackFile = match aetherio::read_json(dir.join("mmc-pack.json")).await {
         Ok(pack) => pack,
         Err(err) => {
             tracing::debug!(folder, error = %err, "prism: instance has no readable mmc-pack.json");
@@ -493,15 +493,15 @@ mod tests {
     use super::*;
 
     async fn write(path: PathBuf, text: &str) {
-        polyio::create_dir_all(path.parent().unwrap())
+        aetherio::create_dir_all(path.parent().unwrap())
             .await
             .unwrap();
-        polyio::write(path, text.as_bytes()).await.unwrap();
+        aetherio::write(path, text.as_bytes()).await.unwrap();
     }
 
     #[tokio::test]
     async fn icon_keys_cannot_leave_the_icons_folder() {
-        let tmp = polyio::tempdir().await.unwrap();
+        let tmp = aetherio::tempdir().await.unwrap();
         let icons = tmp.dir_path().join("icons");
         write(icons.join("custom.png"), "png").await;
         write(tmp.dir_path().join("secret.png"), "png").await;
@@ -514,7 +514,7 @@ mod tests {
 
     #[tokio::test]
     async fn reads_a_prism_install() {
-        let tmp = polyio::tempdir().await.unwrap();
+        let tmp = aetherio::tempdir().await.unwrap();
         let root = tmp.dir_path();
 
         write(
@@ -589,7 +589,7 @@ mod tests {
 
     #[tokio::test]
     async fn the_launcher_wide_java_is_not_the_instances() {
-        let tmp = polyio::tempdir().await.unwrap();
+        let tmp = aetherio::tempdir().await.unwrap();
         let root = tmp.dir_path();
         let instance = "[General]\nInstanceType=OneSix\nJavaVersion=21.0.4\n";
 
@@ -602,12 +602,12 @@ mod tests {
 
     #[tokio::test]
     async fn portable_installs_are_recognised() {
-        let tmp = polyio::tempdir().await.unwrap();
+        let tmp = aetherio::tempdir().await.unwrap();
         let root = tmp.dir_path();
         write(root.join("UserData/prismlauncher.cfg"), "").await;
         assert_eq!(looks_like_root(root), Some(ExternalLauncher::Prism));
 
-        let tmp = polyio::tempdir().await.unwrap();
+        let tmp = aetherio::tempdir().await.unwrap();
         write(tmp.dir_path().join("multimc.cfg"), "").await;
         assert_eq!(
             looks_like_root(tmp.dir_path()),

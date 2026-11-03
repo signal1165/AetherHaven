@@ -249,8 +249,8 @@ async fn migrate_cluster(
     let mut renamed: Option<(PathBuf, PathBuf)> = None;
     if let Some(folder) = &new_folder {
         let new_dir = clusters_dir.join(folder);
-        if polyio::try_exists(&old_dir).await? {
-            polyio::rename(&old_dir, &new_dir).await?;
+        if aetherio::try_exists(&old_dir).await? {
+            aetherio::rename(&old_dir, &new_dir).await?;
             renamed = Some((old_dir.clone(), new_dir));
         } else {
             tracing::warn!(
@@ -291,7 +291,7 @@ async fn migrate_cluster(
         Ok(Some(_)) => {}
         outcome => {
             if let Some((old_dir, new_dir)) = renamed
-                && let Err(rollback) = polyio::rename(&new_dir, &old_dir).await
+                && let Err(rollback) = aetherio::rename(&new_dir, &old_dir).await
             {
                 tracing::error!(
                     migration_id = %rule.id,
@@ -399,7 +399,7 @@ async fn resolve_new_folder(
         return Ok(None);
     };
 
-    if polyio::try_exists(&clusters_dir.join(&candidate)).await? {
+    if aetherio::try_exists(&clusters_dir.join(&candidate)).await? {
         tracing::warn!(
             folder = %folder_name,
             candidate = %candidate,
@@ -471,7 +471,7 @@ mod tests {
         let source = &clusters[0];
         let target = &clusters[1];
         let marker = source.dir().unwrap().join("keep.txt");
-        polyio::write(&marker, b"keep").await.unwrap();
+        aetherio::write(&marker, b"keep").await.unwrap();
         state.clusters.delete(target.id, true).await.unwrap();
 
         let mut rule = RemoteMigration {
@@ -493,7 +493,7 @@ mod tests {
             let unchanged = state.clusters.get(source.id).await.unwrap();
             assert_eq!(unchanged.mc_version, source.mc_version);
             assert_eq!(unchanged.folder_name, source.folder_name);
-            assert_eq!(polyio::read(&marker).await.unwrap(), b"keep");
+            assert_eq!(aetherio::read(&marker).await.unwrap(), b"keep");
             assert!(
                 cluster_dao::find_by_version_loader(
                     &state.services.db,

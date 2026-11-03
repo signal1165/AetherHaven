@@ -28,7 +28,7 @@ aetherhaven_db.workspace = true
 chrono.workspace = true
 aetherhaven_macro = { workspace = true, features = ["freya"] }
 
-polyio.workspace = true
+aetherio.workspace = true
 rust-embed.workspace = true
 serde_json.workspace = true
 
@@ -100,7 +100,7 @@ category = "Game"
 publisher = "AetherHaven"
 copyright = "© 2026 AetherHaven Contributors"
 homepage = "https://github.com/signal1165/AetherHaven"
-long-description = "AetherHaven Minecraft launcher based on OneLauncher"
+long-description = "AetherHaven Minecraft launcher based on AetherHaven Launcher"
 formats = ["nsis", "app", "dmg", "deb", "appimage"]
 binaries = [{ path = "aetherhaven_launcher", main = true }]
 icons = [

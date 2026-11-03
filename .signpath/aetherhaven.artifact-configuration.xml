@@ -9,7 +9,7 @@
   so we match it with a wildcard instead of a fixed, version-specific name.
 
   Upload this file in the SignPath portal:
-    Project "onelauncher" -> Artifact Configurations -> slug "onelauncher-installer"
+    Project "aetherhaven" -> Artifact Configurations -> slug "aetherhaven-installer"
 -->
 <artifact-configuration xmlns="http://signpath.io/artifact-configuration/v1">
   <zip-file>

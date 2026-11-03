@@ -24,7 +24,7 @@ fn safe_file_name(file_name: &str) -> ContentResult<std::ffi::OsString> {
         return Err(unusable());
     }
     let cleaned = |name: &str| {
-        polyio::sanitize_path(name)
+        aetherio::sanitize_path(name)
             .file_name()
             .map(std::ffi::OsStr::to_os_string)
             .filter(|name| name != "." && name != "..")

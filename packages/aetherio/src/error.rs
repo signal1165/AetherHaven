@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 
-pub type PolyIOResult<T> = Result<T, IOError>;
+pub type AetherIOResult<T> = Result<T, IOError>;
 
 #[derive(Debug, thiserror::Error)]
 pub enum IOError {

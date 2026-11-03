@@ -30,7 +30,7 @@ pub struct DataDirCheck {
 }
 
 pub async fn looks_empty(dir: &Path, ignored: &[OsString]) -> bool {
-    let Ok(mut entries) = polyio::read_dir(dir).await else {
+    let Ok(mut entries) = aetherio::read_dir(dir).await else {
         return true;
     };
 
@@ -83,24 +83,24 @@ pub async fn check(picked: &Path) -> Result<DataDirCheck, String> {
 pub async fn check_exact(path: &Path) -> Result<DataDirCheck, String> {
     let path = path.to_path_buf();
 
-    let existed = polyio::try_exists(&path).await.unwrap_or(false);
-    polyio::create_dir_all(&path)
+    let existed = aetherio::try_exists(&path).await.unwrap_or(false);
+    aetherio::create_dir_all(&path)
         .await
         .map_err(|err| format!("Couldn't create {}: {err}", path.display()))?;
 
     let probe = path.join(PROBE_NAME);
-    let writable = polyio::write(&probe, b"".as_slice()).await;
-    polyio::remove_file(&probe).await.ok();
+    let writable = aetherio::write(&probe, b"".as_slice()).await;
+    aetherio::remove_file(&probe).await.ok();
 
     if let Err(err) = writable {
         if !existed {
-            polyio::remove_dir(&path).await.ok();
+            aetherio::remove_dir(&path).await.ok();
         }
         return Err(format!("Can't write to {}: {err}", path.display()));
     }
 
     if !existed {
-        polyio::remove_dir(&path).await.ok();
+        aetherio::remove_dir(&path).await.ok();
     }
 
     Ok(DataDirCheck {
@@ -116,7 +116,7 @@ pub async fn apply(picked: Option<PathBuf>) -> Result<(), String> {
     if let Some(picked) = picked {
         let checked = check(&picked).await?;
 
-        polyio::create_dir_all(&checked.path)
+        aetherio::create_dir_all(&checked.path)
             .await
             .map_err(|err| format!("Couldn't create {}: {err}", checked.path.display()))?;
 
@@ -149,7 +149,7 @@ fn low_space_warning(path: &Path) -> Option<String> {
 }
 
 pub(crate) fn available_space(path: &Path) -> Option<u64> {
-    let target = polyio::canonicalize(path).unwrap_or_else(|_| path.to_path_buf());
+    let target = aetherio::canonicalize(path).unwrap_or_else(|_| path.to_path_buf());
 
     sysinfo::Disks::new_with_refreshed_list()
         .iter()
@@ -164,10 +164,10 @@ mod tests {
 
     #[tokio::test]
     async fn a_folder_with_things_in_it_gets_a_folder_of_its_own() {
-        let root = polyio::testing::ScratchDir::new("data_dir_busy");
+        let root = aetherio::testing::ScratchDir::new("data_dir_busy");
         let dir = root.path();
-        polyio::create_dir_all(dir).await.unwrap();
-        polyio::write(dir.join("holiday.jpg"), b"mine".as_slice())
+        aetherio::create_dir_all(dir).await.unwrap();
+        aetherio::write(dir.join("holiday.jpg"), b"mine".as_slice())
             .await
             .unwrap();
 
@@ -178,9 +178,9 @@ mod tests {
 
     #[tokio::test]
     async fn an_empty_folder_is_used_as_it_stands() {
-        let root = polyio::testing::ScratchDir::new("data_dir_empty");
+        let root = aetherio::testing::ScratchDir::new("data_dir_empty");
         let dir = root.path();
-        polyio::create_dir_all(dir).await.unwrap();
+        aetherio::create_dir_all(dir).await.unwrap();
 
         assert_eq!(
             resolve(dir).await,
@@ -193,10 +193,10 @@ mod tests {
 
     #[tokio::test]
     async fn a_folder_the_finder_has_been_in_still_counts_as_empty() {
-        let root = polyio::testing::ScratchDir::new("data_dir_clutter");
+        let root = aetherio::testing::ScratchDir::new("data_dir_clutter");
         let dir = root.path();
-        polyio::create_dir_all(dir).await.unwrap();
-        polyio::write(dir.join(".DS_Store"), b"junk".as_slice())
+        aetherio::create_dir_all(dir).await.unwrap();
+        aetherio::write(dir.join(".DS_Store"), b"junk".as_slice())
             .await
             .unwrap();
 
@@ -211,10 +211,10 @@ mod tests {
 
     #[tokio::test]
     async fn resolving_twice_does_not_nest() {
-        let root = polyio::testing::ScratchDir::new("data_dir_nest");
+        let root = aetherio::testing::ScratchDir::new("data_dir_nest");
         let dir = root.path();
-        polyio::create_dir_all(dir).await.unwrap();
-        polyio::write(dir.join("holiday.jpg"), b"mine".as_slice())
+        aetherio::create_dir_all(dir).await.unwrap();
+        aetherio::write(dir.join("holiday.jpg"), b"mine".as_slice())
             .await
             .unwrap();
 
@@ -226,10 +226,10 @@ mod tests {
 
     #[tokio::test]
     async fn the_settings_that_stayed_behind_do_not_make_the_default_folder_look_busy() {
-        let root = polyio::testing::ScratchDir::new("data_dir_settled");
+        let root = aetherio::testing::ScratchDir::new("data_dir_settled");
         let dir = root.path();
-        polyio::create_dir_all(dir).await.unwrap();
-        polyio::write(dir.join("settings.json"), b"{}".as_slice())
+        aetherio::create_dir_all(dir).await.unwrap();
+        aetherio::write(dir.join("settings.json"), b"{}".as_slice())
             .await
             .unwrap();
 
@@ -240,7 +240,7 @@ mod tests {
             "moving back in has to be allowed over the settings that never left"
         );
 
-        polyio::create_dir_all(dir.join("clusters")).await.unwrap();
+        aetherio::create_dir_all(dir.join("clusters")).await.unwrap();
 
         assert!(
             !looks_empty(dir, &settled).await,
@@ -252,10 +252,10 @@ mod tests {
 
     #[tokio::test]
     async fn a_writable_folder_passes_and_is_not_left_behind() {
-        let root = polyio::testing::ScratchDir::new("data_dir_check");
-        polyio::create_dir_all(root.path()).await.unwrap();
+        let root = aetherio::testing::ScratchDir::new("data_dir_check");
+        aetherio::create_dir_all(root.path()).await.unwrap();
 
-        polyio::write(root.join("holiday.jpg"), b"mine".as_slice())
+        aetherio::write(root.join("holiday.jpg"), b"mine".as_slice())
             .await
             .unwrap();
 

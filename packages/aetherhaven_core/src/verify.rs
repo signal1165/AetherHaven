@@ -6,7 +6,7 @@ use aetherhaven_content::packages::PackageStore;
 use aetherhaven_content::packages::store::artifact_absolute_path;
 use aetherhaven_db::dao::artifact as artifact_dao;
 use aetherhaven_events::{GroupedProgressSession, TaskCategory, TaskPhase};
-use polyio::{normalize_hash, sha1_file};
+use aetherio::{normalize_hash, sha1_file};
 
 use crate::LauncherResult;
 use crate::clusters::prepare::prepare_cluster_locked;
@@ -253,14 +253,14 @@ async fn reclaim_orphans(paths: &[PathBuf]) {
             continue;
         };
 
-        if polyio::stat(&aside).await.is_err() {
+        if aetherio::stat(&aside).await.is_err() {
             continue;
         }
 
-        let recovered = if polyio::stat(path).await.is_ok() {
-            polyio::remove_file(&aside).await
+        let recovered = if aetherio::stat(path).await.is_ok() {
+            aetherio::remove_file(&aside).await
         } else {
-            polyio::rename(&aside, path).await
+            aetherio::rename(&aside, path).await
         };
 
         match recovered {
@@ -284,7 +284,7 @@ async fn stage_aside(paths: Vec<PathBuf>) -> Vec<(PathBuf, PathBuf)> {
             continue;
         };
 
-        match polyio::rename(&path, &aside).await {
+        match aetherio::rename(&path, &aside).await {
             Ok(()) => staged.push((path, aside)),
             Err(err) => {
                 tracing::warn!(path = %path.display(), "could not stage for a refetch: {err}");
@@ -299,12 +299,12 @@ async fn settle_staged(staged: Vec<(PathBuf, PathBuf)>) -> usize {
     let mut refetched = 0;
 
     for (path, aside) in staged {
-        if polyio::stat(&path).await.is_ok() {
+        if aetherio::stat(&path).await.is_ok() {
             refetched += 1;
-            if let Err(err) = polyio::remove_file(&aside).await {
+            if let Err(err) = aetherio::remove_file(&aside).await {
                 tracing::warn!(path = %aside.display(), "could not drop the staged copy: {err}");
             }
-        } else if let Err(err) = polyio::rename(&aside, &path).await {
+        } else if let Err(err) = aetherio::rename(&aside, &path).await {
             tracing::error!(path = %path.display(), "could not restore after a failed refetch: {err}");
         }
     }
@@ -357,7 +357,7 @@ async fn verify_cluster_content(
             Err(err) => {
                 tracing::warn!(path = %path.display(), "could not hash content: {err}");
                 report.corrupt += 1;
-                let _ = polyio::remove_file(&path).await;
+                let _ = aetherio::remove_file(&path).await;
                 repair_content(state, link, report).await;
                 continue;
             }
@@ -376,7 +376,7 @@ async fn verify_cluster_content(
             "corrupt content file; removing"
         );
         report.corrupt += 1;
-        let _ = polyio::remove_file(&path).await;
+        let _ = aetherio::remove_file(&path).await;
         repair_content(state, link, report).await;
     }
 
@@ -451,7 +451,7 @@ async fn cached_assets_index(
     let path = paths::assets_index_dir()
         .ok()?
         .join(format!("{}.json", info.asset_index.id));
-    polyio::read_json(&path).await.ok()
+    aetherio::read_json(&path).await.ok()
 }
 
 #[cfg(test)]

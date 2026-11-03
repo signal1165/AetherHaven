@@ -132,7 +132,7 @@ pub async fn check_service_status(requester: &RequestClient) -> ServiceStatus {
     ServiceStatus {
         online: true,
         mc_auth_up,
-        // AetherHaven does not contact the legacy Polyfrost status service.
+        // AetherHaven does not contact the legacy AetherHaven status service.
         // Keep the field for compatibility with existing status-bar state.
         aetherhaven_services_up: true,
     }

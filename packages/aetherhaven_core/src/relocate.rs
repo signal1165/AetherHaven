@@ -189,12 +189,12 @@ pub async fn relocate(
     let skip = skipped_names(&plan.from);
     let found = collect(&plan.from, &skip).await?;
 
-    polyio::create_dir_all(&plan.to)
+    aetherio::create_dir_all(&plan.to)
         .await
         .map_err(|err| format!("Couldn't create {}: {err}", plan.to.display()))?;
 
     let marker = plan.to.join(IN_PROGRESS_MARKER);
-    polyio::write(&marker, b"".as_slice())
+    aetherio::write(&marker, b"".as_slice())
         .await
         .map_err(|err| format!("Couldn't write to {}: {err}", plan.to.display()))?;
 
@@ -206,7 +206,7 @@ pub async fn relocate(
         }
     };
 
-    polyio::remove_file(&marker)
+    aetherio::remove_file(&marker)
         .await
         .map_err(|err| format!("Couldn't finish the move at {}: {err}", plan.to.display()))?;
 
@@ -235,7 +235,7 @@ pub async fn leftovers(state: &LauncherState) -> Option<Leftovers> {
         return None;
     }
 
-    if !polyio::try_exists(&path).await.unwrap_or(false) {
+    if !aetherio::try_exists(&path).await.unwrap_or(false) {
         return None;
     }
 
@@ -260,7 +260,7 @@ pub async fn discard_leftovers(state: &LauncherState) -> Result<u64, String> {
     let keep = config_owned_names(&old);
 
     if keep.is_empty() {
-        polyio::remove_dir_all(&old)
+        aetherio::remove_dir_all(&old)
             .await
             .map_err(|err| format!("Couldn't remove {}: {err}", old.display()))?;
     } else {
@@ -290,7 +290,7 @@ pub async fn adopt_legacy_dir() -> Result<Option<PathBuf>, String> {
         return Ok(None);
     };
 
-    let Ok(raw) = polyio::read(from.join(paths::SETTINGS_FILE)).await else {
+    let Ok(raw) = aetherio::read(from.join(paths::SETTINGS_FILE)).await else {
         return Ok(None);
     };
 
@@ -305,16 +305,16 @@ pub async fn adopt_legacy_dir() -> Result<Option<PathBuf>, String> {
         return Ok(None);
     }
 
-    let old = polyio::canonicalize(&from).unwrap_or_else(|_| from.clone());
+    let old = aetherio::canonicalize(&from).unwrap_or_else(|_| from.clone());
 
     if let Some(parent) = to.parent() {
-        polyio::create_dir_all(parent)
+        aetherio::create_dir_all(parent)
             .await
             .map_err(|err| format!("Couldn't create {}: {err}", parent.display()))?;
     }
-    polyio::remove_dir(&to).await.ok();
+    aetherio::remove_dir(&to).await.ok();
 
-    polyio::rename(&from, &to).await.map_err(|err| {
+    aetherio::rename(&from, &to).await.map_err(|err| {
         format!(
             "Couldn't move {} to {}, staying on the old folder: {err}",
             from.display(),
@@ -326,7 +326,7 @@ pub async fn adopt_legacy_dir() -> Result<Option<PathBuf>, String> {
     if database.is_file()
         && let Err(err) = rewrite_java_paths(&database, &from, &to).await
     {
-        return match polyio::rename(&to, &from).await {
+        return match aetherio::rename(&to, &from).await {
             Ok(()) => Err(format!("{err} Staying on {}.", from.display())),
             Err(back) => Err(format!(
                 "{err} Moving {} back failed too: {back}",
@@ -336,12 +336,12 @@ pub async fn adopt_legacy_dir() -> Result<Option<PathBuf>, String> {
     }
 
     for dir in from.ancestors().skip(1).take(2) {
-        if polyio::remove_dir(dir).await.is_err() {
+        if aetherio::remove_dir(dir).await.is_err() {
             break;
         }
     }
 
-    let new = polyio::canonicalize(&to).unwrap_or_else(|_| to.clone());
+    let new = aetherio::canonicalize(&to).unwrap_or_else(|_| to.clone());
     repoint_links(&new, &old, &from).await.map_err(|err| {
         format!(
             "Moved to {} but a link could not be repointed: {err}",
@@ -352,11 +352,11 @@ pub async fn adopt_legacy_dir() -> Result<Option<PathBuf>, String> {
     Ok(Some(from))
 }
 
-async fn repoint_links(root: &Path, old: &Path, raw_old: &Path) -> Result<(), polyio::IOError> {
+async fn repoint_links(root: &Path, old: &Path, raw_old: &Path) -> Result<(), aetherio::IOError> {
     let mut stack = vec![root.to_path_buf()];
 
     while let Some(dir) = stack.pop() {
-        let mut entries = polyio::read_dir(&dir).await?;
+        let mut entries = aetherio::read_dir(&dir).await?;
 
         while let Ok(Some(entry)) = entries.next_entry().await {
             let path = entry.path();
@@ -373,7 +373,7 @@ async fn repoint_links(root: &Path, old: &Path, raw_old: &Path) -> Result<(), po
                 continue;
             }
 
-            let Ok(target) = polyio::read_link(&path).await else {
+            let Ok(target) = aetherio::read_link(&path).await else {
                 continue;
             };
             let Ok(rest) = target
@@ -385,11 +385,11 @@ async fn repoint_links(root: &Path, old: &Path, raw_old: &Path) -> Result<(), po
 
             let target = root.join(rest);
             if target.is_dir() {
-                polyio::remove_symlink_dir(&path).await?;
-                polyio::symlink_dir(&target, &path).await?;
+                aetherio::remove_symlink_dir(&path).await?;
+                aetherio::symlink_dir(&target, &path).await?;
             } else {
-                polyio::remove_file(&path).await?;
-                polyio::symlink_file(&target, &path).await?;
+                aetherio::remove_file(&path).await?;
+                aetherio::symlink_file(&target, &path).await?;
             }
         }
     }
@@ -529,7 +529,7 @@ async fn collect(root: &Path, skip_top: &[OsString]) -> Result<Found, String> {
     let mut stack = vec![(root.to_path_buf(), true)];
 
     while let Some((dir, is_top)) = stack.pop() {
-        let mut entries = match polyio::read_dir(&dir).await {
+        let mut entries = match aetherio::read_dir(&dir).await {
             Ok(entries) => entries,
             Err(err) => {
                 return Err(format!("Couldn't read {}: {err}", dir.display()));
@@ -585,7 +585,7 @@ async fn copy_tree(
 ) -> Result<u64, String> {
     for relative in &found.dirs {
         let dir = to.join(relative);
-        polyio::create_dir_all(&dir)
+        aetherio::create_dir_all(&dir)
             .await
             .map_err(|err| format!("Couldn't create {}: {err}", dir.display()))?;
     }
@@ -602,10 +602,10 @@ async fn copy_tree(
         let dest = to.join(relative);
 
         if let Some(parent) = dest.parent() {
-            polyio::create_dir_all(parent).await.ok();
+            aetherio::create_dir_all(parent).await.ok();
         }
 
-        let written = polyio::copy(&src, &dest)
+        let written = aetherio::copy(&src, &dest)
             .await
             .map_err(|err| format!("Couldn't copy {}: {err}", relative.display()))?;
 
@@ -794,7 +794,7 @@ async fn abandon(to: &Path) {
 }
 
 async fn discard_unclaimed(to: &Path) {
-    match polyio::remove_dir_all(to).await {
+    match aetherio::remove_dir_all(to).await {
         Ok(()) => tracing::info!(path = %to.display(), "cleared the abandoned folder"),
         Err(err) => tracing::error!(
             path = %to.display(),
@@ -805,7 +805,7 @@ async fn discard_unclaimed(to: &Path) {
 }
 
 async fn remove_children_except(dir: &Path, keep: &[OsString]) -> Result<(), String> {
-    let mut entries = polyio::read_dir(dir)
+    let mut entries = aetherio::read_dir(dir)
         .await
         .map_err(|err| format!("Couldn't read {}: {err}", dir.display()))?;
 
@@ -821,9 +821,9 @@ async fn remove_children_except(dir: &Path, keep: &[OsString]) -> Result<(), Str
         };
 
         let removed = if file_type.is_dir() {
-            polyio::remove_dir_all(&path).await
+            aetherio::remove_dir_all(&path).await
         } else {
-            polyio::remove_file(&path).await
+            aetherio::remove_file(&path).await
         };
 
         if let Err(err) = removed {
@@ -861,14 +861,14 @@ mod tests {
 
     #[tokio::test]
     async fn the_walk_skips_what_it_is_told_to_and_counts_the_rest() {
-        let root = polyio::testing::ScratchDir::new("relocate_collect");
+        let root = aetherio::testing::ScratchDir::new("relocate_collect");
         let dir = root.path();
-        polyio::create_dir_all(dir.join("metadata")).await.unwrap();
+        aetherio::create_dir_all(dir.join("metadata")).await.unwrap();
 
-        polyio::write(dir.join("user_data.db"), b"skipped".as_slice())
+        aetherio::write(dir.join("user_data.db"), b"skipped".as_slice())
             .await
             .unwrap();
-        polyio::write(dir.join("metadata").join("kept.bin"), b"1234".as_slice())
+        aetherio::write(dir.join("metadata").join("kept.bin"), b"1234".as_slice())
             .await
             .unwrap();
 
@@ -890,11 +890,11 @@ mod tests {
     #[cfg(unix)]
     #[tokio::test]
     async fn a_socket_is_walked_past_rather_than_queued_for_copying() {
-        let root = polyio::testing::ScratchDir::new("relocate_socket");
+        let root = aetherio::testing::ScratchDir::new("relocate_socket");
         let dir = root.path();
 
         let socket = std::os::unix::net::UnixListener::bind(dir.join("ipc.sock")).unwrap();
-        polyio::write(dir.join("kept.bin"), vec![0u8; 100])
+        aetherio::write(dir.join("kept.bin"), vec![0u8; 100])
             .await
             .unwrap();
 
@@ -913,14 +913,14 @@ mod tests {
 
     #[tokio::test]
     async fn a_folder_kept_out_of_the_copy_is_kept_out_of_the_total_too() {
-        let root = polyio::testing::ScratchDir::new("relocate_skip_dir");
+        let root = aetherio::testing::ScratchDir::new("relocate_skip_dir");
         let dir = root.path();
-        polyio::create_dir_all(dir.join("logs")).await.unwrap();
+        aetherio::create_dir_all(dir.join("logs")).await.unwrap();
 
-        polyio::write(dir.join("logs").join("latest.log"), vec![0u8; 900])
+        aetherio::write(dir.join("logs").join("latest.log"), vec![0u8; 900])
             .await
             .unwrap();
-        polyio::write(dir.join("kept.bin"), vec![0u8; 100])
+        aetherio::write(dir.join("kept.bin"), vec![0u8; 100])
             .await
             .unwrap();
 

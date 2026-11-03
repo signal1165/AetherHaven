@@ -1230,13 +1230,13 @@ mod message_link_tests {
         let mut state = NotificationState::default();
         let mut inbox = Vec::new();
 
-        state.dispatch(&mut inbox, message(Some("https://polyfrost.org")));
+        state.dispatch(&mut inbox, message(Some("https://github.com/signal1165/AetherHaven")));
 
         let kinds: Vec<_> = inbox[0].actions.iter().map(|a| a.kind.clone()).collect();
         assert_eq!(
             kinds,
             vec![NotificationActionKind::OpenUrl(
-                "https://polyfrost.org".into()
+                "https://github.com/signal1165/AetherHaven".into()
             )]
         );
     }

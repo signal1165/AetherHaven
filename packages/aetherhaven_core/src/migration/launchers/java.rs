@@ -35,7 +35,7 @@ pub async fn major_from_install(java_path: &Path) -> Option<u32> {
     let candidates = std::iter::once(java_path.join("release")).chain(beside_bin);
 
     for release in candidates {
-        let Ok(text) = polyio::read_to_string(&release).await else {
+        let Ok(text) = aetherio::read_to_string(&release).await else {
             continue;
         };
         let found = text.lines().find_map(|line| {
@@ -66,10 +66,10 @@ mod tests {
 
     #[tokio::test]
     async fn finds_the_release_file_from_the_executable_or_the_root() {
-        let home = polyio::tempdir().await.unwrap();
+        let home = aetherio::tempdir().await.unwrap();
         let root = home.dir_path();
-        polyio::create_dir_all(root.join("bin")).await.unwrap();
-        polyio::write(
+        aetherio::create_dir_all(root.join("bin")).await.unwrap();
+        aetherio::write(
             root.join("release"),
             "IMPLEMENTOR=\"Eclipse Adoptium\"\nJAVA_VERSION=\"21.0.4\"\n",
         )

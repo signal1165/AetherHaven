@@ -142,9 +142,9 @@ mod tests {
 
     #[tokio::test]
     async fn reads_a_log_that_is_not_utf8() {
-        let dir = polyio::tempdir().await.expect("temp dir");
+        let dir = aetherio::tempdir().await.expect("temp dir");
         let path = dir.dir_path().join("cluster-output.log");
-        polyio::write(&path, b"ok\n\x8crodowisko\n".to_vec())
+        aetherio::write(&path, b"ok\n\x8crodowisko\n".to_vec())
             .await
             .unwrap();
 

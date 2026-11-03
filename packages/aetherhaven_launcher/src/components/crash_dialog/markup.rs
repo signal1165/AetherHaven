@@ -262,12 +262,12 @@ mod tests {
     #[test]
     fn every_distinct_link_is_collected_once() {
         let links = links_in(
-            "See <https://polyfrost.org> and <https://polyfrost.org> and https://modrinth.com/x",
+            "See <https://github.com/signal1165/AetherHaven> and <https://github.com/signal1165/AetherHaven> and https://modrinth.com/x",
         );
 
         assert_eq!(
             links,
-            vec!["https://polyfrost.org", "https://modrinth.com/x"]
+            vec!["https://github.com/signal1165/AetherHaven", "https://modrinth.com/x"]
         );
     }
 

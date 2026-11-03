@@ -77,7 +77,7 @@ pub async fn detect() -> LauncherResult<Option<MigrationDetection>> {
         return Ok(None);
     };
 
-    if !polyio::dir_has_content(&root).await {
+    if !aetherio::dir_has_content(&root).await {
         tracing::debug!(root = %root.display(), "vanilla migration: empty install, skipping");
         return Ok(None);
     }
@@ -114,14 +114,14 @@ pub async fn import_game_dir(
         ImportTarget::Dedicated { new_cluster_id } => {
             let cluster = state.clusters.get(*new_cluster_id).await?;
             let dir = cluster.dir()?;
-            polyio::create_dir_all(&dir).await?;
-            polyio::write(cluster.dedicated_marker()?, Vec::new()).await?;
+            aetherio::create_dir_all(&dir).await?;
+            aetherio::write(cluster.dedicated_marker()?, Vec::new()).await?;
             dir
         }
     };
 
-    polyio::create_dir_all(&dest).await?;
-    polyio::copy_dir(&src, &dest, IMPORT_EXCLUDE_TOP).await?;
+    aetherio::create_dir_all(&dest).await?;
+    aetherio::copy_dir(&src, &dest, IMPORT_EXCLUDE_TOP).await?;
 
     Ok(())
 }
@@ -132,8 +132,8 @@ mod tests {
 
     #[tokio::test]
     async fn import_copies_user_data_and_skips_the_rest() {
-        let src = polyio::tempdir().await.expect("src dir");
-        let dst = polyio::tempdir().await.expect("dst dir");
+        let src = aetherio::tempdir().await.expect("src dir");
+        let dst = aetherio::tempdir().await.expect("dst dir");
         let (src, dst) = (src.dir_path(), dst.dir_path());
 
         for file in [
@@ -143,7 +143,7 @@ mod tests {
             "launcher_msa_credentials.bin",
             "cheatbreaker_accounts.json",
         ] {
-            polyio::write(src.join(file), b"x".to_vec()).await.unwrap();
+            aetherio::write(src.join(file), b"x".to_vec()).await.unwrap();
         }
         for (dir, file) in [
             ("saves", "world/level.dat"),
@@ -161,13 +161,13 @@ mod tests {
             ("logs", "latest.log"),
         ] {
             let path = src.join(dir).join(file);
-            polyio::create_dir_all(path.parent().unwrap())
+            aetherio::create_dir_all(path.parent().unwrap())
                 .await
                 .unwrap();
-            polyio::write(path, b"x".to_vec()).await.unwrap();
+            aetherio::write(path, b"x".to_vec()).await.unwrap();
         }
 
-        polyio::copy_dir(src, dst, IMPORT_EXCLUDE_TOP)
+        aetherio::copy_dir(src, dst, IMPORT_EXCLUDE_TOP)
             .await
             .unwrap();
 

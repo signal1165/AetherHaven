@@ -52,7 +52,7 @@ impl VersionsManager {
 
     async fn cached_json<T: DeserializeOwned>(file_name: &str, what: &str) -> Option<T> {
         let path = paths::caches_dir().ok()?.join(file_name);
-        let bytes = polyio::read(&path).await.ok()?;
+        let bytes = aetherio::read(&path).await.ok()?;
         match serde_json::from_slice(&bytes) {
             Ok(value) => Some(value),
             Err(err) => {

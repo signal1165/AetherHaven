@@ -9,7 +9,7 @@ use crate::bundles::BundlesManager;
 use crate::ctx::ContentCtx;
 use crate::error::ContentResult;
 use aetherhaven_events::{EventBus, GroupedProgressSession, TaskCategory, TaskPhase};
-use polyio::{ZipEntryCursor, sha1_bytes, sha1_file};
+use aetherio::{ZipEntryCursor, sha1_bytes, sha1_file};
 
 const ALWAYS_UPDATE_GLOBS: &[&str] = &["config/fabric_loader_dependencies.json"];
 
@@ -33,7 +33,7 @@ struct OverrideLock {
 impl OverrideLock {
     async fn load(root: &Path) -> Self {
         let path = root.join(LOCK_REL_PATH);
-        match polyio::read(&path).await {
+        match aetherio::read(&path).await {
             Ok(bytes) => serde_json::from_slice(&bytes).unwrap_or_else(|err| {
                 tracing::warn!(error = %err, "corrupt bundle override lock; starting fresh");
                 Self::default()
@@ -45,10 +45,10 @@ impl OverrideLock {
     async fn save(&self, root: &Path) -> ContentResult<()> {
         let path = root.join(LOCK_REL_PATH);
         if let Some(parent) = path.parent() {
-            polyio::create_dir_all(parent).await.ok();
+            aetherio::create_dir_all(parent).await.ok();
         }
         let bytes = serde_json::to_vec_pretty(self).map_err(std::io::Error::other)?;
-        polyio::write_atomic(&path, bytes).await?;
+        aetherio::write_atomic(&path, bytes).await?;
         Ok(())
     }
 }
@@ -248,7 +248,7 @@ pub(crate) async fn sync_layered_overrides_tracked(
         };
 
         let new_sha1 = sha1_bytes(&bytes);
-        let dest = root.join(polyio::sanitize_path(rel));
+        let dest = root.join(aetherio::sanitize_path(rel));
         let disk_sha1 = current_sha1(&dest).await;
         let base = previous.get(rel).cloned();
 
@@ -351,10 +351,10 @@ pub(crate) async fn sync_layered_overrides_tracked(
         if claimed_elsewhere(&lock, rel) {
             continue;
         }
-        let dest = root.join(polyio::sanitize_path(rel));
+        let dest = root.join(aetherio::sanitize_path(rel));
 
         if current_sha1(&dest).await.as_deref() == Some(base_sha1.as_str())
-            && polyio::remove_file(&dest).await.is_ok()
+            && aetherio::remove_file(&dest).await.is_ok()
         {
             report.deleted.push(rel.clone());
         }
@@ -430,9 +430,9 @@ pub(crate) async fn sync_file_lock(
             continue;
         }
 
-        let dest = root.join(polyio::sanitize_path(&rel));
+        let dest = root.join(aetherio::sanitize_path(&rel));
         if current_sha1(&dest).await.as_deref() == Some(base_sha1.as_str())
-            && polyio::remove_file(&dest).await.is_ok()
+            && aetherio::remove_file(&dest).await.is_ok()
         {
             deleted.push(rel);
         }
@@ -485,7 +485,7 @@ fn merge_missing(target: &mut serde_json::Value, extra: &serde_json::Value) {
 
 async fn merge_parts(dir: &Path) -> Vec<Vec<u8>> {
     let mut paths = Vec::new();
-    if let Ok(mut entries) = polyio::read_dir(dir.join(MERGED_PARTS)).await {
+    if let Ok(mut entries) = aetherio::read_dir(dir.join(MERGED_PARTS)).await {
         while let Ok(Some(entry)) = entries.next_entry().await {
             paths.push(entry.path());
         }
@@ -494,7 +494,7 @@ async fn merge_parts(dir: &Path) -> Vec<Vec<u8>> {
 
     let mut parts = Vec::new();
     for path in paths {
-        if let Ok(bytes) = polyio::read(&path).await {
+        if let Ok(bytes) = aetherio::read(&path).await {
             parts.push(bytes);
         }
     }
@@ -503,7 +503,7 @@ async fn merge_parts(dir: &Path) -> Vec<Vec<u8>> {
 
 async fn compose_merged(root: &Path, rel: &str) -> Option<Vec<u8>> {
     let dir = merged_dir(root, rel);
-    let base = polyio::read(dir.join(MERGED_BASE)).await.ok();
+    let base = aetherio::read(dir.join(MERGED_BASE)).await.ok();
     let parts = merge_parts(&dir).await;
     compose_bytes(rel, base, parts)
 }
@@ -602,12 +602,12 @@ fn version_first_json(value: &serde_json::Value) -> Option<Vec<u8>> {
 }
 
 async fn apply_merged(root: &Path, rel: &str) -> bool {
-    let dest = root.join(polyio::sanitize_path(rel));
+    let dest = root.join(aetherio::sanitize_path(rel));
     match compose_merged(root, rel).await {
         Some(bytes) => write_override(&dest, &bytes, rel).await,
         None => {
-            if polyio::try_exists(&dest).await.unwrap_or(false) {
-                polyio::remove_file(&dest).await.is_ok()
+            if aetherio::try_exists(&dest).await.unwrap_or(false) {
+                aetherio::remove_file(&dest).await.is_ok()
             } else {
                 true
             }
@@ -616,17 +616,17 @@ async fn apply_merged(root: &Path, rel: &str) -> bool {
 }
 
 async fn remember_merge_target(dir: &Path, rel: &str) {
-    if polyio::create_dir_all(dir.join(MERGED_PARTS)).await.is_ok() {
-        polyio::write(dir.join(MERGED_TARGET), rel).await.ok();
+    if aetherio::create_dir_all(dir.join(MERGED_PARTS)).await.is_ok() {
+        aetherio::write(dir.join(MERGED_TARGET), rel).await.ok();
     }
 }
 
 async fn write_merge_base(root: &Path, rel: &str, bytes: &[u8]) -> bool {
     let dir = merged_dir(root, rel);
     remember_merge_target(&dir, rel).await;
-    if let Err(err) = polyio::write_atomic(dir.join(MERGED_BASE), bytes).await {
+    if let Err(err) = aetherio::write_atomic(dir.join(MERGED_BASE), bytes).await {
         tracing::warn!(path = rel, error = %err, "could not keep the merge base");
-        return write_override(&root.join(polyio::sanitize_path(rel)), bytes, rel).await;
+        return write_override(&root.join(aetherio::sanitize_path(rel)), bytes, rel).await;
     }
     apply_merged(root, rel).await
 }
@@ -636,7 +636,7 @@ async fn drop_merge_base(root: &Path, rel: &str, base_sha1: &str) -> bool {
     if current_sha1(&base).await.as_deref() != Some(base_sha1) {
         return false;
     }
-    polyio::remove_file(&base).await.ok();
+    aetherio::remove_file(&base).await.ok();
     apply_merged(root, rel).await
 }
 
@@ -649,21 +649,21 @@ async fn own_part_matches(
     let Some(disk_sha1) = disk_sha1 else {
         return false;
     };
-    polyio::read(merge_part_path(root, rel, bundle_name))
+    aetherio::read(merge_part_path(root, rel, bundle_name))
         .await
         .is_ok_and(|bytes| sha1_bytes(&bytes) == disk_sha1)
 }
 
 async fn has_other_copies(root: &Path, rel: &str, bundle_name: &str) -> bool {
     let dir = merged_dir(root, rel);
-    if polyio::try_exists(dir.join(MERGED_BASE))
+    if aetherio::try_exists(dir.join(MERGED_BASE))
         .await
         .unwrap_or(false)
     {
         return true;
     }
     let own = merge_part_path(root, rel, bundle_name);
-    let Ok(mut entries) = polyio::read_dir(dir.join(MERGED_PARTS)).await else {
+    let Ok(mut entries) = aetherio::read_dir(dir.join(MERGED_PARTS)).await else {
         return false;
     };
     while let Ok(Some(entry)) = entries.next_entry().await {
@@ -680,8 +680,8 @@ fn claimed_elsewhere(lock: &OverrideLock, rel: &str) -> bool {
 
 async fn discard_own_part(root: &Path, rel: &str, bundle_name: &str) {
     let part = merge_part_path(root, rel, bundle_name);
-    if polyio::try_exists(&part).await.unwrap_or(false) {
-        polyio::remove_file(&part).await.ok();
+    if aetherio::try_exists(&part).await.unwrap_or(false) {
+        aetherio::remove_file(&part).await.ok();
     }
 }
 
@@ -701,8 +701,8 @@ async fn convert_claims_to_parts(
         return;
     }
 
-    let dest = root.join(polyio::sanitize_path(rel));
-    let disk = polyio::read(&dest).await.ok();
+    let dest = root.join(aetherio::sanitize_path(rel));
+    let disk = aetherio::read(&dest).await.ok();
     let disk_sha1 = disk.as_deref().map(sha1_bytes);
     let dir = merged_dir(root, rel);
     remember_merge_target(&dir, rel).await;
@@ -714,7 +714,7 @@ async fn convert_claims_to_parts(
         if let Some(bytes) = &disk
             && disk_sha1.as_deref() == Some(claimed.as_str())
         {
-            polyio::write_atomic(merge_part_path(root, rel, &key), bytes).await.ok();
+            aetherio::write_atomic(merge_part_path(root, rel, &key), bytes).await.ok();
         }
     }
 }
@@ -722,16 +722,16 @@ async fn convert_claims_to_parts(
 async fn add_merge_part(root: &Path, rel: &str, bundle_name: &str, bytes: &[u8]) {
     let dir = merged_dir(root, rel);
     let base = dir.join(MERGED_BASE);
-    let dest = root.join(polyio::sanitize_path(rel));
-    if !polyio::try_exists(&base).await.unwrap_or(false) && merge_parts(&dir).await.is_empty() {
+    let dest = root.join(aetherio::sanitize_path(rel));
+    if !aetherio::try_exists(&base).await.unwrap_or(false) && merge_parts(&dir).await.is_empty() {
         remember_merge_target(&dir, rel).await;
-        if let Ok(existing) = polyio::read(&dest).await {
-            polyio::write_atomic(&base, existing).await.ok();
+        if let Ok(existing) = aetherio::read(&dest).await {
+            aetherio::write_atomic(&base, existing).await.ok();
         }
     }
 
     remember_merge_target(&dir, rel).await;
-    if let Err(err) = polyio::write_atomic(merge_part_path(root, rel, bundle_name), bytes).await {
+    if let Err(err) = aetherio::write_atomic(merge_part_path(root, rel, bundle_name), bytes).await {
         tracing::warn!(path = rel, bundle = bundle_name, error = %err, "could not keep a merged override");
         return;
     }
@@ -753,7 +753,7 @@ pub(crate) async fn move_lock_entries(root: &Path, from: &str, to: &str) {
 }
 
 pub(crate) async fn move_merge_parts(root: &Path, from: &str, to: &str) {
-    let Ok(mut entries) = polyio::read_dir(root.join(MERGED_DIR)).await else {
+    let Ok(mut entries) = aetherio::read_dir(root.join(MERGED_DIR)).await else {
         return;
     };
     let mut dirs = Vec::new();
@@ -762,25 +762,25 @@ pub(crate) async fn move_merge_parts(root: &Path, from: &str, to: &str) {
     }
 
     for dir in dirs {
-        let Ok(rel) = polyio::read(dir.join(MERGED_TARGET)).await else {
+        let Ok(rel) = aetherio::read(dir.join(MERGED_TARGET)).await else {
             continue;
         };
         let rel = String::from_utf8_lossy(&rel).trim().to_string();
         let from_part = merge_part_path(root, &rel, from);
-        let Ok(bytes) = polyio::read(&from_part).await else {
+        let Ok(bytes) = aetherio::read(&from_part).await else {
             continue;
         };
         let to_part = merge_part_path(root, &rel, to);
-        if !polyio::try_exists(&to_part).await.unwrap_or(false) {
-            polyio::write(&to_part, bytes).await.ok();
+        if !aetherio::try_exists(&to_part).await.unwrap_or(false) {
+            aetherio::write(&to_part, bytes).await.ok();
         }
-        polyio::remove_file(&from_part).await.ok();
+        aetherio::remove_file(&from_part).await.ok();
         apply_merged(root, &rel).await;
     }
 }
 
 pub(crate) async fn prune_merge_parts(root: &Path, bundle_name: &str, keep: &HashSet<String>) {
-    let Ok(mut entries) = polyio::read_dir(root.join(MERGED_DIR)).await else {
+    let Ok(mut entries) = aetherio::read_dir(root.join(MERGED_DIR)).await else {
         return;
     };
     let mut dirs = Vec::new();
@@ -789,7 +789,7 @@ pub(crate) async fn prune_merge_parts(root: &Path, bundle_name: &str, keep: &Has
     }
 
     for dir in dirs {
-        let Ok(rel) = polyio::read(dir.join(MERGED_TARGET)).await else {
+        let Ok(rel) = aetherio::read(dir.join(MERGED_TARGET)).await else {
             continue;
         };
         let rel = String::from_utf8_lossy(&rel).trim().to_string();
@@ -797,7 +797,7 @@ pub(crate) async fn prune_merge_parts(root: &Path, bundle_name: &str, keep: &Has
             continue;
         }
         let part = merge_part_path(root, &rel, bundle_name);
-        if polyio::try_exists(&part).await.unwrap_or(false) && polyio::remove_file(&part).await.is_ok()
+        if aetherio::try_exists(&part).await.unwrap_or(false) && aetherio::remove_file(&part).await.is_ok()
         {
             apply_merged(root, &rel).await;
         }
@@ -806,9 +806,9 @@ pub(crate) async fn prune_merge_parts(root: &Path, bundle_name: &str, keep: &Has
 
 async fn write_override(dest: &Path, bytes: &[u8], rel: &str) -> bool {
     if let Some(parent) = dest.parent() {
-        polyio::create_dir_all(parent).await.ok();
+        aetherio::create_dir_all(parent).await.ok();
     }
-    match polyio::write_atomic(dest, bytes).await {
+    match aetherio::write_atomic(dest, bytes).await {
         Ok(()) => true,
         Err(err) => {
             tracing::warn!(path = rel, error = %err, "failed to write bundle override");
@@ -818,7 +818,7 @@ async fn write_override(dest: &Path, bytes: &[u8], rel: &str) -> bool {
 }
 
 async fn current_sha1(path: &Path) -> Option<String> {
-    if polyio::try_exists(path).await.unwrap_or(false) {
+    if aetherio::try_exists(path).await.unwrap_or(false) {
         sha1_file(path).await.ok()
     } else {
         None
@@ -993,7 +993,7 @@ mod tests {
     }
 
     async fn read(path: &Path) -> Option<Vec<u8>> {
-        polyio::read(path).await.ok()
+        aetherio::read(path).await.ok()
     }
 
     async fn sync(zip: &Path, root: &Path) -> OverrideSyncReport {
@@ -1004,10 +1004,10 @@ mod tests {
 
     #[tokio::test]
     async fn a_shared_file_stays_until_its_last_owner_leaves() {
-        let root = polyio::testing::ScratchDir::new("shared-claims");
+        let root = aetherio::testing::ScratchDir::new("shared-claims");
         let rel = "config/sodium-options.json";
         let dest = root.join(rel);
-        polyio::write_atomic(&dest, b"shared").await.unwrap();
+        aetherio::write_atomic(&dest, b"shared").await.unwrap();
         let sha1 = sha1_bytes(b"shared");
 
         let mut lock = OverrideLock::default();
@@ -1022,16 +1022,16 @@ mod tests {
         let listed = HashSet::new();
         let deleted = sync_file_lock(root.as_ref(), "modpack:file:a", HashMap::new(), &listed).await;
         assert!(deleted.is_empty());
-        assert!(polyio::try_exists(&dest).await.unwrap());
+        assert!(aetherio::try_exists(&dest).await.unwrap());
 
         let deleted = sync_file_lock(root.as_ref(), "modpack:file:b", HashMap::new(), &listed).await;
         assert_eq!(deleted, vec![rel.to_string()]);
-        assert!(!polyio::try_exists(&dest).await.unwrap());
+        assert!(!aetherio::try_exists(&dest).await.unwrap());
     }
 
     #[tokio::test]
     async fn a_pack_update_keeps_a_config_another_pack_also_ships() {
-        let root = polyio::testing::ScratchDir::new("shared-overrides");
+        let root = aetherio::testing::ScratchDir::new("shared-overrides");
         let with = root.join("with.mrpack");
         let without = root.join("without.mrpack");
         write_bundle(&with, &[("overrides/config/x.json", b"same")]).await;
@@ -1059,7 +1059,7 @@ mod tests {
 
     #[tokio::test]
     async fn override_paths_are_normalised_and_unsafe_ones_skipped() {
-        let root = polyio::testing::ScratchDir::new("unsafe-overrides");
+        let root = aetherio::testing::ScratchDir::new("unsafe-overrides");
         let zip = root.join("pack.mrpack");
         write_bundle(
             &zip,
@@ -1085,7 +1085,7 @@ mod tests {
 
     #[tokio::test]
     async fn a_later_layer_wins_over_an_earlier_one() {
-        let root = polyio::testing::ScratchDir::new("layers");
+        let root = aetherio::testing::ScratchDir::new("layers");
         let zip = root.join("pack.mrpack");
         write_bundle(
             &zip,
@@ -1118,7 +1118,7 @@ mod tests {
 
     #[tokio::test]
     async fn unsafe_override_paths_are_dropped() {
-        let root = polyio::testing::ScratchDir::new("unsafe-paths");
+        let root = aetherio::testing::ScratchDir::new("unsafe-paths");
         let zip = root.join("pack.mrpack");
         write_bundle(
             &zip,
@@ -1141,7 +1141,7 @@ mod tests {
 
     #[tokio::test]
     async fn entries_the_filter_rejects_are_left_alone() {
-        let root = polyio::testing::ScratchDir::new("keep-filter");
+        let root = aetherio::testing::ScratchDir::new("keep-filter");
         let zip = root.join("pack.mrpack");
         write_bundle(
             &zip,
@@ -1170,15 +1170,15 @@ mod tests {
 
     #[tokio::test]
     async fn a_file_dropped_from_the_lock_is_deleted_only_when_untouched() {
-        let root = polyio::testing::ScratchDir::new("file-lock");
-        polyio::create_dir_all(root.join("config")).await.unwrap();
-        polyio::write(root.join("config/kept.json"), b"mine")
+        let root = aetherio::testing::ScratchDir::new("file-lock");
+        aetherio::create_dir_all(root.join("config")).await.unwrap();
+        aetherio::write(root.join("config/kept.json"), b"mine")
             .await
             .unwrap();
-        polyio::write(root.join("config/gone.json"), b"pack")
+        aetherio::write(root.join("config/gone.json"), b"pack")
             .await
             .unwrap();
-        polyio::write(root.join("config/edited.json"), b"edited")
+        aetherio::write(root.join("config/edited.json"), b"edited")
             .await
             .unwrap();
 
@@ -1202,7 +1202,7 @@ mod tests {
 
     #[tokio::test]
     async fn a_large_override_is_not_skipped() {
-        let root = polyio::testing::ScratchDir::new("large-override");
+        let root = aetherio::testing::ScratchDir::new("large-override");
         let zip = root.join("pack.mrpack");
         let big = vec![7u8; 17 * 1024 * 1024];
         write_bundle(&zip, &[("overrides/resourcepacks/big.zip", big.as_slice())]).await;
@@ -1220,7 +1220,7 @@ mod tests {
 
     #[tokio::test]
     async fn fresh_install_writes_all() {
-        let root = polyio::testing::ScratchDir::new("fresh");
+        let root = aetherio::testing::ScratchDir::new("fresh");
         let zip = root.join("v1.mrpack");
         write_bundle(
             &zip,
@@ -1244,7 +1244,7 @@ mod tests {
 
     #[tokio::test]
     async fn rerun_same_version_is_noop() {
-        let root = polyio::testing::ScratchDir::new("noop");
+        let root = aetherio::testing::ScratchDir::new("noop");
         let zip = root.join("v1.mrpack");
         write_bundle(&zip, &[("overrides/config/a.toml", b"alpha")]).await;
         sync(&zip, root.path()).await;
@@ -1257,7 +1257,7 @@ mod tests {
 
     #[tokio::test]
     async fn untouched_file_updates() {
-        let root = polyio::testing::ScratchDir::new("update");
+        let root = aetherio::testing::ScratchDir::new("update");
         let v1 = root.join("v1.mrpack");
         write_bundle(&v1, &[("overrides/config/a.toml", b"alpha")]).await;
         sync(&v1, root.path()).await;
@@ -1276,12 +1276,12 @@ mod tests {
 
     #[tokio::test]
     async fn user_edit_with_bundle_unchanged_is_kept_silently() {
-        let root = polyio::testing::ScratchDir::new("edit_noconflict");
+        let root = aetherio::testing::ScratchDir::new("edit_noconflict");
         let v1 = root.join("v1.mrpack");
         write_bundle(&v1, &[("overrides/config/a.toml", b"alpha")]).await;
         sync(&v1, root.path()).await;
 
-        polyio::write(root.join("config/a.toml"), b"user-edit")
+        aetherio::write(root.join("config/a.toml"), b"user-edit")
             .await
             .unwrap();
 
@@ -1296,12 +1296,12 @@ mod tests {
 
     #[tokio::test]
     async fn user_edit_and_bundle_changed_is_conflict_kept() {
-        let root = polyio::testing::ScratchDir::new("conflict");
+        let root = aetherio::testing::ScratchDir::new("conflict");
         let v1 = root.join("v1.mrpack");
         write_bundle(&v1, &[("overrides/config/a.toml", b"alpha")]).await;
         sync(&v1, root.path()).await;
 
-        polyio::write(root.join("config/a.toml"), b"user-edit")
+        aetherio::write(root.join("config/a.toml"), b"user-edit")
             .await
             .unwrap();
 
@@ -1336,7 +1336,7 @@ mod tests {
             .unwrap()
     }
 
-    async fn deps_bundle(root: &polyio::testing::ScratchDir, name: &str, bytes: &[u8]) -> PathBuf {
+    async fn deps_bundle(root: &aetherio::testing::ScratchDir, name: &str, bytes: &[u8]) -> PathBuf {
         let zip = root.join(name);
         write_bundle(&zip, &[(&format!("overrides/{FABRIC_DEPS}"), bytes)]).await;
         zip
@@ -1351,7 +1351,7 @@ mod tests {
 
     #[tokio::test]
     async fn an_added_pack_alone_owns_its_file_unchanged() {
-        let root = polyio::testing::ScratchDir::new("pack-alone");
+        let root = aetherio::testing::ScratchDir::new("pack-alone");
         let pack = deps_bundle(&root, "pack.mrpack", PACK_DEPS).await;
         sync_pack(&pack, root.path()).await;
 
@@ -1367,7 +1367,7 @@ mod tests {
 
     #[tokio::test]
     async fn an_added_pack_merges_into_an_owner_file() {
-        let root = polyio::testing::ScratchDir::new("pack-after-owner");
+        let root = aetherio::testing::ScratchDir::new("pack-after-owner");
         let owner = deps_bundle(&root, "owner.mrpack", OWNER_DEPS).await;
         sync(&owner, root.path()).await;
         let pack = deps_bundle(&root, "pack.mrpack", PACK_DEPS).await;
@@ -1378,7 +1378,7 @@ mod tests {
 
     #[tokio::test]
     async fn an_owner_write_keeps_a_pack_owned_file() {
-        let root = polyio::testing::ScratchDir::new("owner-after-pack");
+        let root = aetherio::testing::ScratchDir::new("owner-after-pack");
         let pack = deps_bundle(&root, "pack.mrpack", PACK_DEPS).await;
         sync_pack(&pack, root.path()).await;
         let owner = deps_bundle(&root, "owner.mrpack", OWNER_DEPS).await;
@@ -1391,7 +1391,7 @@ mod tests {
 
     #[tokio::test]
     async fn a_leftover_part_switches_back_to_owning_the_file() {
-        let root = polyio::testing::ScratchDir::new("leftover-part");
+        let root = aetherio::testing::ScratchDir::new("leftover-part");
         add_merge_part(root.path(), FABRIC_DEPS, PACK_KEY, PACK_DEPS).await;
         assert_eq!(read(&root.join(FABRIC_DEPS)).await.unwrap(), PACK_DEPS);
 
@@ -1462,7 +1462,7 @@ mod tests {
             .unwrap_or_default()
     }
 
-    async fn owner_sync(root: &polyio::testing::ScratchDir, bundle: &str, bytes: Option<&[u8]>) {
+    async fn owner_sync(root: &aetherio::testing::ScratchDir, bundle: &str, bytes: Option<&[u8]>) {
         let zip = root.join(format!("{bundle}.mrpack"));
         match bytes {
             Some(bytes) => {
@@ -1475,7 +1475,7 @@ mod tests {
             .unwrap();
     }
 
-    async fn pack_sync(root: &polyio::testing::ScratchDir, key: &str, bytes: Option<&[u8]>) {
+    async fn pack_sync(root: &aetherio::testing::ScratchDir, key: &str, bytes: Option<&[u8]>) {
         let zip = root.join(format!("{}.mrpack", key.replace(':', "_")));
         match bytes {
             Some(bytes) => {
@@ -1488,19 +1488,19 @@ mod tests {
             .unwrap();
     }
 
-    async fn pack_removed(root: &polyio::testing::ScratchDir, key: &str) {
+    async fn pack_removed(root: &aetherio::testing::ScratchDir, key: &str) {
         let none = HashSet::new();
         sync_file_lock(root.path(), key, HashMap::new(), &none).await;
         prune_merge_parts(root.path(), key, &none).await;
     }
 
-    async fn deps_on_disk(root: &polyio::testing::ScratchDir) -> Option<Vec<u8>> {
+    async fn deps_on_disk(root: &aetherio::testing::ScratchDir) -> Option<Vec<u8>> {
         read(&root.join(FABRIC_DEPS)).await
     }
 
     #[tokio::test]
     async fn scenario_real_aetherhaven_pack_alone_is_untouched() {
-        let root = polyio::testing::ScratchDir::new("s-aetherhaven-alone");
+        let root = aetherio::testing::ScratchDir::new("s-aetherhaven-alone");
         pack_sync(&root, PACK_KEY, Some(AETHERHAVEN_PACK_DEPS.as_bytes())).await;
         let out = deps_on_disk(&root).await.unwrap();
         assert_eq!(out, AETHERHAVEN_PACK_DEPS.as_bytes());
@@ -1509,7 +1509,7 @@ mod tests {
 
     #[tokio::test]
     async fn scenario_crlf_pack_alone_is_untouched() {
-        let root = polyio::testing::ScratchDir::new("s-crlf-alone");
+        let root = aetherio::testing::ScratchDir::new("s-crlf-alone");
         pack_sync(&root, PACK_KEY, Some(DISTANT_HORIZONS_PACK_DEPS.as_bytes())).await;
         let out = deps_on_disk(&root).await.unwrap();
         assert_eq!(out, DISTANT_HORIZONS_PACK_DEPS.as_bytes());
@@ -1518,7 +1518,7 @@ mod tests {
 
     #[tokio::test]
     async fn scenario_bom_pack_alone_is_untouched() {
-        let root = polyio::testing::ScratchDir::new("s-bom-alone");
+        let root = aetherio::testing::ScratchDir::new("s-bom-alone");
         let with_bom = [b"\xef\xbb\xbf".as_slice(), PACK_DEPS].concat();
         pack_sync(&root, PACK_KEY, Some(&with_bom)).await;
         let out = deps_on_disk(&root).await.unwrap();
@@ -1528,7 +1528,7 @@ mod tests {
 
     #[tokio::test]
     async fn scenario_bundle_then_pack() {
-        let root = polyio::testing::ScratchDir::new("s-bundle-pack");
+        let root = aetherio::testing::ScratchDir::new("s-bundle-pack");
         owner_sync(&root, "qol", Some(QOL_BUNDLE_DEPS.as_bytes())).await;
         pack_sync(&root, PACK_KEY, Some(PACK_DEPS)).await;
         let out = deps_on_disk(&root).await.unwrap();
@@ -1539,7 +1539,7 @@ mod tests {
 
     #[tokio::test]
     async fn scenario_pack_then_bundle() {
-        let root = polyio::testing::ScratchDir::new("s-pack-bundle");
+        let root = aetherio::testing::ScratchDir::new("s-pack-bundle");
         pack_sync(&root, PACK_KEY, Some(PACK_DEPS)).await;
         owner_sync(&root, "qol", Some(QOL_BUNDLE_DEPS.as_bytes())).await;
         let out = deps_on_disk(&root).await.unwrap();
@@ -1550,7 +1550,7 @@ mod tests {
 
     #[tokio::test]
     async fn scenario_two_bundles_then_the_real_pack() {
-        let root = polyio::testing::ScratchDir::new("s-two-bundles");
+        let root = aetherio::testing::ScratchDir::new("s-two-bundles");
         owner_sync(&root, "qol", Some(QOL_BUNDLE_DEPS.as_bytes())).await;
         owner_sync(&root, "skyblock", Some(SKYBLOCK_BUNDLE_DEPS.as_bytes())).await;
         assert_fabric_accepts(&deps_on_disk(&root).await.unwrap());
@@ -1562,7 +1562,7 @@ mod tests {
 
     #[tokio::test]
     async fn scenario_two_packs_without_a_bundle() {
-        let root = polyio::testing::ScratchDir::new("s-two-packs");
+        let root = aetherio::testing::ScratchDir::new("s-two-packs");
         pack_sync(&root, PACK_KEY, Some(AETHERHAVEN_PACK_DEPS.as_bytes())).await;
         pack_sync(&root, OTHER_PACK_KEY, Some(DISTANT_HORIZONS_PACK_DEPS.as_bytes())).await;
         let out = deps_on_disk(&root).await.unwrap();
@@ -1578,7 +1578,7 @@ mod tests {
 
     #[tokio::test]
     async fn scenario_bundle_and_two_packs_then_both_removed() {
-        let root = polyio::testing::ScratchDir::new("s-bundle-two-packs");
+        let root = aetherio::testing::ScratchDir::new("s-bundle-two-packs");
         owner_sync(&root, "qol", Some(QOL_BUNDLE_DEPS.as_bytes())).await;
         pack_sync(&root, PACK_KEY, Some(PACK_DEPS)).await;
         pack_sync(&root, OTHER_PACK_KEY, Some(DISTANT_HORIZONS_PACK_DEPS.as_bytes())).await;
@@ -1595,7 +1595,7 @@ mod tests {
 
     #[tokio::test]
     async fn scenario_bundle_drops_the_file_while_a_pack_needs_it() {
-        let root = polyio::testing::ScratchDir::new("s-bundle-drops");
+        let root = aetherio::testing::ScratchDir::new("s-bundle-drops");
         owner_sync(&root, "qol", Some(QOL_BUNDLE_DEPS.as_bytes())).await;
         pack_sync(&root, PACK_KEY, Some(PACK_DEPS)).await;
         owner_sync(&root, "qol", None).await;
@@ -1606,7 +1606,7 @@ mod tests {
 
     #[tokio::test]
     async fn scenario_pack_update_changes_and_then_drops_its_file() {
-        let root = polyio::testing::ScratchDir::new("s-pack-update");
+        let root = aetherio::testing::ScratchDir::new("s-pack-update");
         pack_sync(&root, PACK_KEY, Some(PACK_DEPS)).await;
         pack_sync(&root, PACK_KEY, Some(AETHERHAVEN_PACK_DEPS.as_bytes())).await;
         assert_eq!(deps_on_disk(&root).await.unwrap(), AETHERHAVEN_PACK_DEPS.as_bytes());
@@ -1616,7 +1616,7 @@ mod tests {
 
     #[tokio::test]
     async fn scenario_bom_on_both_sides_still_merges() {
-        let root = polyio::testing::ScratchDir::new("s-bom-both");
+        let root = aetherio::testing::ScratchDir::new("s-bom-both");
         let bom = b"\xef\xbb\xbf".as_slice();
         owner_sync(&root, "qol", Some(&[bom, QOL_BUNDLE_DEPS.as_bytes()].concat())).await;
         pack_sync(&root, PACK_KEY, Some(&[bom, PACK_DEPS].concat())).await;
@@ -1628,7 +1628,7 @@ mod tests {
 
     #[tokio::test]
     async fn scenario_broken_inputs_never_produce_a_broken_merge() {
-        let root = polyio::testing::ScratchDir::new("s-broken-inputs");
+        let root = aetherio::testing::ScratchDir::new("s-broken-inputs");
         owner_sync(&root, "qol", Some(b"{ not json")).await;
         let bad_pack = br#"{"overrides":{"good":{"+depends":{"a":"*"},"+requires":{"b":"*"},"breaks":{"c":5,"d":["1.0",2],"e":["<2"]}},"bad":"nope"},"extra":true}"#;
         pack_sync(&root, PACK_KEY, Some(bad_pack)).await;
@@ -1644,9 +1644,9 @@ mod tests {
 
     #[tokio::test]
     async fn scenario_user_edit_then_bundle_sync() {
-        let root = polyio::testing::ScratchDir::new("s-user-edit");
+        let root = aetherio::testing::ScratchDir::new("s-user-edit");
         pack_sync(&root, PACK_KEY, Some(PACK_DEPS)).await;
-        polyio::write(root.join(FABRIC_DEPS), br#"{"version":1,"overrides":{"mine":{"-depends":{"z":"*"}}}}"#)
+        aetherio::write(root.join(FABRIC_DEPS), br#"{"version":1,"overrides":{"mine":{"-depends":{"z":"*"}}}}"#)
             .await
             .unwrap();
         owner_sync(&root, "qol", Some(QOL_BUNDLE_DEPS.as_bytes())).await;
@@ -1659,13 +1659,13 @@ mod tests {
 
     #[tokio::test]
     async fn always_update_overwrites_user_edit() {
-        let root = polyio::testing::ScratchDir::new("always");
+        let root = aetherio::testing::ScratchDir::new("always");
         let path = "config/fabric_loader_dependencies.json";
         let v1 = root.join("v1.mrpack");
         write_bundle(&v1, &[(&format!("overrides/{path}"), b"deps-v1")]).await;
         sync(&v1, root.path()).await;
 
-        polyio::write(root.join(path), b"runtime-mutated")
+        aetherio::write(root.join(path), b"runtime-mutated")
             .await
             .unwrap();
 
@@ -1679,7 +1679,7 @@ mod tests {
 
     #[tokio::test]
     async fn removed_file_deleted_only_when_unmodified() {
-        let root = polyio::testing::ScratchDir::new("removed");
+        let root = aetherio::testing::ScratchDir::new("removed");
         let v1 = root.join("v1.mrpack");
         write_bundle(
             &v1,
@@ -1691,7 +1691,7 @@ mod tests {
         .await;
         sync(&v1, root.path()).await;
 
-        polyio::write(root.join("config/kept.toml"), b"edited")
+        aetherio::write(root.join("config/kept.toml"), b"edited")
             .await
             .unwrap();
 
@@ -1710,10 +1710,10 @@ mod tests {
 
     #[tokio::test]
     async fn bootstrap_pre_existing_edit_is_never_overwritten() {
-        let root = polyio::testing::ScratchDir::new("bootstrap");
+        let root = aetherio::testing::ScratchDir::new("bootstrap");
 
-        polyio::create_dir_all(root.join("config")).await.unwrap();
-        polyio::write(root.join("config/a.toml"), b"pre-existing")
+        aetherio::create_dir_all(root.join("config")).await.unwrap();
+        aetherio::write(root.join("config/a.toml"), b"pre-existing")
             .await
             .unwrap();
 

@@ -73,7 +73,7 @@ pub async fn storage_report(state: &LauncherState) -> LauncherResult<StorageRepo
     ];
     // Only there once an instance has been reset
     let reset_backups = paths::cluster_reset_backups_dir()?;
-    if polyio::try_exists(&reset_backups).await.unwrap_or(false) {
+    if aetherio::try_exists(&reset_backups).await.unwrap_or(false) {
         category_dirs.push(("Reset backups", reset_backups));
     }
 
@@ -193,7 +193,7 @@ async fn unused_natives_dirs(state: &LauncherState) -> Vec<PathBuf> {
     };
 
     let mut unused = Vec::new();
-    let Ok(mut entries) = polyio::read_dir(&root).await else {
+    let Ok(mut entries) = aetherio::read_dir(&root).await else {
         return unused;
     };
 
@@ -248,7 +248,7 @@ async fn legacy_cluster_content(clusters: &[Cluster]) -> ReclaimableEntry {
             }
 
             let dir = root.join(content_type.folder_name());
-            let Ok(mut entries) = polyio::read_dir(&dir).await else {
+            let Ok(mut entries) = aetherio::read_dir(&dir).await else {
                 continue;
             };
 
@@ -268,7 +268,7 @@ async fn legacy_cluster_content(clusters: &[Cluster]) -> ReclaimableEntry {
 
                 if file_type.is_file() && is_content_file(content_type, name) {
                     found.files += 1;
-                    found.bytes += polyio::stat(&path).await.map(|m| m.len()).unwrap_or(0);
+                    found.bytes += aetherio::stat(&path).await.map(|m| m.len()).unwrap_or(0);
                 }
             }
         }
@@ -308,7 +308,7 @@ async fn dir_size_seen(root: impl AsRef<Path>, seen: &mut SeenFiles) -> u64 {
     let mut stack = vec![root.as_ref().to_path_buf()];
 
     while let Some(dir) = stack.pop() {
-        let Ok(mut entries) = polyio::read_dir(&dir).await else {
+        let Ok(mut entries) = aetherio::read_dir(&dir).await else {
             continue;
         };
 
@@ -351,7 +351,7 @@ async fn file_identity(path: &Path) -> Option<(u64, u64)> {
         return None;
     }
 
-    polyio::file_id(path).await.ok()
+    aetherio::file_id(path).await.ok()
 }
 
 fn can_be_materialized(path: &Path) -> bool {
@@ -394,7 +394,7 @@ pub async fn clean_unused_natives(state: &LauncherState) -> LauncherResult<usize
     let dirs = unused_natives_dirs(state).await;
     let mut removed = 0;
     for dir in dirs {
-        match polyio::remove_dir_all(&dir).await {
+        match aetherio::remove_dir_all(&dir).await {
             Ok(()) => {
                 tracing::info!(path = %dir.display(), "removed unused natives");
                 removed += 1;
@@ -559,20 +559,20 @@ mod tests {
 
     #[tokio::test]
     async fn size_ignores_what_links_point_at() {
-        let root = polyio::testing::ScratchDir::new("dir_size");
+        let root = aetherio::testing::ScratchDir::new("dir_size");
         let dir = root.path();
-        polyio::create_dir_all(dir.join("nested")).await.unwrap();
+        aetherio::create_dir_all(dir.join("nested")).await.unwrap();
 
-        polyio::write(dir.join("a.jar"), vec![0u8; 1000])
+        aetherio::write(dir.join("a.jar"), vec![0u8; 1000])
             .await
             .unwrap();
-        polyio::write(dir.join("nested").join("b.jar"), vec![0u8; 500])
+        aetherio::write(dir.join("nested").join("b.jar"), vec![0u8; 500])
             .await
             .unwrap();
 
         assert_eq!(dir_size(dir).await, 1500);
 
-        polyio::symlink_file(dir.join("a.jar"), dir.join("link.jar"))
+        aetherio::symlink_file(dir.join("a.jar"), dir.join("link.jar"))
             .await
             .unwrap();
         assert_eq!(
@@ -586,17 +586,17 @@ mod tests {
 
     #[tokio::test]
     async fn a_file_in_two_folders_is_paid_for_once() {
-        let root = polyio::testing::ScratchDir::new("shared_size");
+        let root = aetherio::testing::ScratchDir::new("shared_size");
         let dir = root.path();
         let store = dir.join("store");
         let cluster = dir.join("cluster");
-        polyio::create_dir_all(&store).await.unwrap();
-        polyio::create_dir_all(&cluster).await.unwrap();
+        aetherio::create_dir_all(&store).await.unwrap();
+        aetherio::create_dir_all(&cluster).await.unwrap();
 
-        polyio::write(store.join("mod.jar"), vec![0u8; 1000])
+        aetherio::write(store.join("mod.jar"), vec![0u8; 1000])
             .await
             .unwrap();
-        polyio::symlink_file(store.join("mod.jar"), cluster.join("mod.jar"))
+        aetherio::symlink_file(store.join("mod.jar"), cluster.join("mod.jar"))
             .await
             .unwrap();
 

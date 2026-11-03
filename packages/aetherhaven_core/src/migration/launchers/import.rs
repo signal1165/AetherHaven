@@ -211,7 +211,7 @@ pub async fn import_instance(
     let content = state.services.content();
     let mut status = ImportStatus::new(progress);
     status.stage(format!("Reading {}", instance.name));
-    let staging = polyio::tempdir().await?;
+    let staging = aetherio::tempdir().await?;
     let mut scanned = scan_content(&instance.game_dir).await;
     let found = scanned.files.len();
     scanned
@@ -411,7 +411,7 @@ async fn populate(
         .extend(scanned.unreadable.iter().cloned());
 
     let game_dir = cluster.game_dir()?;
-    polyio::create_dir_all(&game_dir).await?;
+    aetherio::create_dir_all(&game_dir).await?;
     status.stage("Copying worlds and settings");
     if instance.game_dir.is_dir() {
         let source = instance.game_dir.as_path();
@@ -523,7 +523,7 @@ async fn drop_pack_files_removed_locally(
     let tracked = bundle_dao::list_bundle_tracked(&content.db, cluster_id).await?;
     for row in tracked {
         if row.bundle_name.as_deref() != Some(MODPACK_BUNDLE_NAME)
-            || scanned.present.contains(&polyio::normalize_hash(&row.hash))
+            || scanned.present.contains(&aetherio::normalize_hash(&row.hash))
         {
             continue;
         }
@@ -557,7 +557,7 @@ async fn drop_skipped_pack_files(
     }
 
     for artifact in PackageStore::list_linked_artifacts(cluster_id, content).await? {
-        if !skip.contains(&polyio::normalize_hash(&artifact.hash)) {
+        if !skip.contains(&aetherio::normalize_hash(&artifact.hash)) {
             continue;
         }
         if let Err(err) =
@@ -795,7 +795,7 @@ pub(super) async fn scan_folders(
             continue;
         }
 
-        let mut entries = match polyio::read_dir(&folder).await {
+        let mut entries = match aetherio::read_dir(&folder).await {
             Ok(entries) => entries,
             Err(err) => {
                 tracing::debug!(folder = %folder.display(), error = %err, "could not list content folder");
@@ -842,7 +842,7 @@ pub(super) async fn scan_folders(
             if metadata.is_file() && is_archive(content_type, &name) {
                 match hash_file(&path, fingerprint).await {
                     Ok((hash, cf_fingerprint)) => {
-                        let hash = polyio::normalize_hash(&hash);
+                        let hash = aetherio::normalize_hash(&hash);
                         scanned.present.insert(hash.clone());
                         scanned.files.push(LocalContent {
                             enabled: !name.to_ascii_lowercase().ends_with(DISABLED_SUFFIX),
@@ -875,13 +875,13 @@ pub(super) async fn scan_folders(
 async fn hash_file(
     path: &Path,
     fingerprint: bool,
-) -> Result<(String, Option<u32>), polyio::IOError> {
+) -> Result<(String, Option<u32>), aetherio::IOError> {
     if !fingerprint {
-        return Ok((polyio::sha1_file(path).await?, None));
+        return Ok((aetherio::sha1_file(path).await?, None));
     }
     let bytes = tokio::fs::read(path).await?;
     Ok((
-        polyio::sha1_bytes(&bytes),
+        aetherio::sha1_bytes(&bytes),
         Some(curseforge_fingerprint(&bytes)),
     ))
 }
@@ -934,7 +934,7 @@ fn strip_disabled(name: &str) -> &str {
 /// the user's real files; a folder already visited is not entered twice, so
 /// a link pointing back up the tree cannot loop
 async fn move_tree(source: &Path, dest: &Path, skipped: &mut Vec<String>) {
-    let Ok(mut entries) = polyio::read_dir(source).await else {
+    let Ok(mut entries) = aetherio::read_dir(source).await else {
         copy_tree(source, dest, source, COPY_EXCLUDE_TOP, skipped).await;
         return;
     };
@@ -944,7 +944,7 @@ async fn move_tree(source: &Path, dest: &Path, skipped: &mut Vec<String>) {
             continue;
         }
         let target = dest.join(&name);
-        if !target.exists() && polyio::rename(entry.path(), &target).await.is_ok() {
+        if !target.exists() && aetherio::rename(entry.path(), &target).await.is_ok() {
             continue;
         }
         copy_tree(&entry.path(), &target, source, &[], skipped).await;
@@ -991,8 +991,8 @@ async fn copy_tree(
         }
 
         let listed = async {
-            polyio::create_dir_all(&cur_dst).await?;
-            polyio::read_dir(&cur_src).await
+            aetherio::create_dir_all(&cur_dst).await?;
+            aetherio::read_dir(&cur_src).await
         };
         let mut entries = match listed.await {
             Ok(entries) => entries,
@@ -1050,11 +1050,11 @@ async fn copy_tree(
     }
 }
 
-async fn copy_file(src: &Path, dst: &Path) -> Result<(), polyio::IOError> {
+async fn copy_file(src: &Path, dst: &Path) -> Result<(), aetherio::IOError> {
     if let Some(parent) = dst.parent() {
-        polyio::create_dir_all(parent).await?;
+        aetherio::create_dir_all(parent).await?;
     }
-    polyio::copy(src, dst).await?;
+    aetherio::copy(src, dst).await?;
     Ok(())
 }
 
@@ -1063,17 +1063,17 @@ mod tests {
     use super::*;
 
     async fn touch(path: PathBuf) {
-        polyio::create_dir_all(path.parent().unwrap())
+        aetherio::create_dir_all(path.parent().unwrap())
             .await
             .unwrap();
-        polyio::write(&path, path.to_string_lossy().as_bytes())
+        aetherio::write(&path, path.to_string_lossy().as_bytes())
             .await
             .unwrap();
     }
 
     #[tokio::test]
     async fn scan_splits_store_content_from_loose_files() {
-        let tmp = polyio::tempdir().await.unwrap();
+        let tmp = aetherio::tempdir().await.unwrap();
         let root = tmp.dir_path();
         for file in [
             "mods/sodium.jar",
@@ -1134,8 +1134,8 @@ mod tests {
 
     #[tokio::test]
     async fn copy_tree_skips_excluded_and_lock_files() {
-        let src = polyio::tempdir().await.unwrap();
-        let dst = polyio::tempdir().await.unwrap();
+        let src = aetherio::tempdir().await.unwrap();
+        let dst = aetherio::tempdir().await.unwrap();
         let (src, dst) = (src.dir_path(), dst.dir_path());
         for file in [
             "options.txt",
@@ -1158,8 +1158,8 @@ mod tests {
 
     #[tokio::test]
     async fn moving_into_an_existing_folder_keeps_its_nested_folders() {
-        let src = polyio::tempdir().await.unwrap();
-        let dst = polyio::tempdir().await.unwrap();
+        let src = aetherio::tempdir().await.unwrap();
+        let dst = aetherio::tempdir().await.unwrap();
         let (src, dst) = (src.dir_path(), dst.dir_path());
         touch(src.join("kubejs/assets/pack/texture.png")).await;
         touch(src.join("logs/latest.log")).await;
@@ -1176,8 +1176,8 @@ mod tests {
 
     #[tokio::test]
     async fn copy_tree_reports_a_missing_source() {
-        let src = polyio::tempdir().await.unwrap();
-        let dst = polyio::tempdir().await.unwrap();
+        let src = aetherio::tempdir().await.unwrap();
+        let dst = aetherio::tempdir().await.unwrap();
         let mut skipped = Vec::new();
         copy_tree(
             &src.dir_path().join("resourcepacks/Gone"),
@@ -1193,9 +1193,9 @@ mod tests {
     #[cfg(unix)]
     #[tokio::test]
     async fn copy_tree_follows_links_without_looping() {
-        let shared = polyio::tempdir().await.unwrap();
-        let src = polyio::tempdir().await.unwrap();
-        let dst = polyio::tempdir().await.unwrap();
+        let shared = aetherio::tempdir().await.unwrap();
+        let src = aetherio::tempdir().await.unwrap();
+        let dst = aetherio::tempdir().await.unwrap();
         touch(shared.dir_path().join("World/level.dat")).await;
         std::os::unix::fs::symlink(shared.dir_path(), src.dir_path().join("saves")).unwrap();
         // Points back at the instance itself
@@ -1217,8 +1217,8 @@ mod tests {
 
     #[tokio::test]
     async fn disabled_files_reach_the_store_under_their_real_name() {
-        let src = polyio::tempdir().await.unwrap();
-        let staging = polyio::tempdir().await.unwrap();
+        let src = aetherio::tempdir().await.unwrap();
+        let staging = aetherio::tempdir().await.unwrap();
         touch(src.dir_path().join("mods/old.jar.DISABLED")).await;
         touch(src.dir_path().join("mods/live.jar")).await;
 

@@ -3,7 +3,7 @@ use serde::Deserialize;
 use url::Url;
 
 use aetherhaven_net::RequestClient;
-use polyio::Checksum;
+use aetherio::Checksum;
 
 use crate::data::{JavaPackage, PackageArchive};
 use crate::error::JavaResult;

@@ -243,7 +243,7 @@ mod tests {
 
     #[test]
     fn lists_the_cards_that_can_render_out_of_a_sysfs_tree() {
-        let scratch = polyio::testing::ScratchDir::new("gpu-sysfs");
+        let scratch = aetherio::testing::ScratchDir::new("gpu-sysfs");
         let bus = scratch.join("devices");
 
         write_card(&bus, "0000:00:02.0", "8086", "9a49", "i915");
@@ -275,7 +275,7 @@ mod tests {
 
     #[test]
     fn a_missing_pci_tree_is_not_an_error() {
-        let scratch = polyio::testing::ScratchDir::new("gpu-missing");
+        let scratch = aetherio::testing::ScratchDir::new("gpu-missing");
 
         assert!(read_pci_devices(&scratch.join("nope"), "").is_empty());
     }

@@ -89,7 +89,7 @@ async fn tail(
             }
             // A relaunch truncates the log if the file shrank our offset is
             // past the end and we would never read again
-            let len = polyio::stat(path).await.map(|m| m.len()).unwrap_or(offset);
+            let len = aetherio::stat(path).await.map(|m| m.len()).unwrap_or(offset);
             if len < offset {
                 reader.seek(std::io::SeekFrom::Start(0)).await?;
                 offset = 0;
@@ -155,7 +155,7 @@ mod tests {
     impl Harness {
         async fn new() -> Self {
             let (tx, rx) = mpsc::unbounded_channel();
-            let dir = polyio::tempdir().await.expect("temp dir");
+            let dir = aetherio::tempdir().await.expect("temp dir");
             Self {
                 dir,
                 rx,
@@ -188,7 +188,7 @@ mod tests {
     async fn follows_lines_appended_after_start() {
         let mut h = Harness::new().await;
         let path = h.path();
-        polyio::write(&path, "[12:00:00] first\n").await.unwrap();
+        aetherio::write(&path, "[12:00:00] first\n").await.unwrap();
 
         let tail = spawn_log_tail(7, path.clone(), h.events.clone(), None, CrashWatch::new());
         settle().await;
@@ -213,7 +213,7 @@ mod tests {
 
         let tail = spawn_log_tail(7, path.clone(), h.events.clone(), None, CrashWatch::new());
         settle().await;
-        polyio::write(&path, "[12:00:00] late\n").await.unwrap();
+        aetherio::write(&path, "[12:00:00] late\n").await.unwrap();
         settle().await;
         tail.stop().await;
 
@@ -224,7 +224,7 @@ mod tests {
     async fn holds_back_a_partial_line_until_its_newline_lands() {
         let mut h = Harness::new().await;
         let path = h.path();
-        polyio::write(&path, "[12:00:00] half").await.unwrap();
+        aetherio::write(&path, "[12:00:00] half").await.unwrap();
 
         let tail = spawn_log_tail(7, path.clone(), h.events.clone(), None, CrashWatch::new());
         settle().await;
@@ -248,7 +248,7 @@ mod tests {
     async fn recovers_when_the_log_is_truncated() {
         let mut h = Harness::new().await;
         let path = h.path();
-        polyio::write(&path, "[12:00:00] old session line\n")
+        aetherio::write(&path, "[12:00:00] old session line\n")
             .await
             .unwrap();
 
@@ -258,7 +258,7 @@ mod tests {
 
         // A relaunch truncates the log the tail would otherwise sit forever at
         // an offset past the new end
-        polyio::write(&path, "[13:00:00] new\n").await.unwrap();
+        aetherio::write(&path, "[13:00:00] new\n").await.unwrap();
         settle().await;
         tail.stop().await;
 
@@ -270,7 +270,7 @@ mod tests {
         let mut h = Harness::new().await;
         let path = h.path();
         // A process killed mid-write leaves a newline that never arrives
-        polyio::write(&path, "[12:00:00] cut off mid-writ")
+        aetherio::write(&path, "[12:00:00] cut off mid-writ")
             .await
             .unwrap();
 
@@ -290,7 +290,7 @@ mod tests {
     async fn emits_the_final_lines_written_just_before_exit() {
         let mut h = Harness::new().await;
         let path = h.path();
-        polyio::write(&path, "[12:00:00] Stopping!\n")
+        aetherio::write(&path, "[12:00:00] Stopping!\n")
             .await
             .unwrap();
 
@@ -306,7 +306,7 @@ mod tests {
     async fn keeps_reading_past_a_line_that_is_not_utf8() {
         let mut h = Harness::new().await;
         let path = h.path();
-        polyio::write(&path, b"[12:00:00] \xa3ukasz\n[12:00:01] after\n")
+        aetherio::write(&path, b"[12:00:00] \xa3ukasz\n[12:00:01] after\n")
             .await
             .unwrap();
 

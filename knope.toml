@@ -13,7 +13,7 @@ change_templates = [
 
 [github]
 owner = "signal1165"
-repo = "OneLauncher"
+repo = "AetherHaven"
 
 [[workflows]]
 name = "prepare-release"

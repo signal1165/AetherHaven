@@ -7,7 +7,7 @@ use crate::error::ContentResult;
 use crate::packages::types::{ExternalFile, VersionDetail, VersionFile};
 use aetherhaven_common::domain::{ContentType, ProviderId};
 use aetherhaven_events::GroupedProgressChild;
-use polyio::{normalize_hash, sha1_file};
+use aetherio::{normalize_hash, sha1_file};
 
 #[tracing::instrument(level = "debug", skip(child, ctx))]
 pub async fn ensure_artifact_file(
@@ -18,12 +18,12 @@ pub async fn ensure_artifact_file(
     ctx: &ContentCtx,
 ) -> ContentResult<u64> {
     if aetherhaven_net::matches_on_disk(dest, hash).await {
-        return Ok(polyio::stat(dest).await?.len());
+        return Ok(aetherio::stat(dest).await?.len());
     }
 
     tracing::debug!("downloading artifact file");
     // Modrinth and CurseForge both index by SHA-1
-    let expected = polyio::Checksum::sha1(hash);
+    let expected = aetherio::Checksum::sha1(hash);
     aetherhaven_net::download_verified(
         &ctx.net,
         &ctx.events,
@@ -37,7 +37,7 @@ pub async fn ensure_artifact_file(
     )
     .await?;
 
-    Ok(polyio::stat(dest).await?.len())
+    Ok(aetherio::stat(dest).await?.len())
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -161,7 +161,7 @@ pub async fn download_external(
     child: Option<&GroupedProgressChild>,
     ctx: &ContentCtx,
 ) -> ContentResult<ArtifactRow> {
-    if !polyio::Checksum::sha1(&file.sha1).is_well_formed() {
+    if !aetherio::Checksum::sha1(&file.sha1).is_well_formed() {
         return Err(crate::error::ContentError::InvalidData {
             reason: format!("'{}' has an invalid SHA-1 hash", file.name),
         });

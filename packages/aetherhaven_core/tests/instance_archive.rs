@@ -30,7 +30,7 @@ async fn write_archive(path: &std::path::Path, entries: Vec<(&str, Vec<u8>)>) {
 #[tokio::test]
 async fn a_prism_export_zip_imports_as_an_instance() {
     let state = aetherhaven_core::dev::ephemeral_state().await.unwrap();
-    let scratch = polyio::testing::ScratchDir::new("instance-archive");
+    let scratch = aetherio::testing::ScratchDir::new("instance-archive");
     let archive = scratch.path().join("Skyblock.zip");
     let pack = serde_json::json!({
         "formatVersion": 1,
@@ -108,7 +108,7 @@ fn instance_pack(mc: &str, components: serde_json::Value) -> Vec<u8> {
 #[tokio::test]
 async fn commands_from_an_instance_file_are_not_imported() {
     let state = aetherhaven_core::dev::ephemeral_state().await.unwrap();
-    let scratch = polyio::testing::ScratchDir::new("instance-archive-commands");
+    let scratch = aetherio::testing::ScratchDir::new("instance-archive-commands");
     let archive = scratch.path().join("Hooked.zip");
     let cfg = concat!(
         "[General]\n",
@@ -177,7 +177,7 @@ async fn commands_from_an_instance_file_are_not_imported() {
 
 #[tokio::test]
 async fn ornithe_instances_are_not_mistaken_for_fabric() {
-    let scratch = polyio::testing::ScratchDir::new("instance-archive-ornithe");
+    let scratch = aetherio::testing::ScratchDir::new("instance-archive-ornithe");
     let cfg = b"[General]\nInstanceType=OneSix\nname=Legacy\n".to_vec();
     let fabric = serde_json::json!([
         {"uid": "net.fabricmc.intermediary", "version": "1.8.9"},
@@ -258,7 +258,7 @@ async fn a_fresh_unpacked_instance_survives_the_startup_sweep() {
 
 async fn import_pinned_ornithe(version: &str) -> Option<String> {
     let state = aetherhaven_core::dev::ephemeral_state().await.unwrap();
-    let scratch = polyio::testing::ScratchDir::new("instance-archive-pin");
+    let scratch = aetherio::testing::ScratchDir::new("instance-archive-pin");
     let archive = scratch.path().join("Pinned.zip");
     write_archive(
         &archive,
@@ -308,7 +308,7 @@ async fn a_loader_version_aetherhaven_does_not_offer_is_left_unpinned() {
 #[tokio::test]
 async fn jar_mods_are_reported_and_unsupported_loaders_refused() {
     let state = aetherhaven_core::dev::ephemeral_state().await.unwrap();
-    let scratch = polyio::testing::ScratchDir::new("instance-archive-parts");
+    let scratch = aetherio::testing::ScratchDir::new("instance-archive-parts");
     let cfg = b"[General]\nInstanceType=OneSix\nname=Old Setup\n".to_vec();
 
     let jarmod = scratch.path().join("jarmod.zip");
@@ -428,7 +428,7 @@ async fn jar_mods_are_reported_and_unsupported_loaders_refused() {
 #[tokio::test]
 async fn a_zip_with_several_instances_yields_all_of_them_and_moves_their_files() {
     let state = aetherhaven_core::dev::ephemeral_state().await.unwrap();
-    let scratch = polyio::testing::ScratchDir::new("instance-archive-several");
+    let scratch = aetherio::testing::ScratchDir::new("instance-archive-several");
     let archive = scratch.path().join("instances.zip");
     let pack = instance_pack(
         "1.21.1",

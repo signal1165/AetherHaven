@@ -1,6 +1,6 @@
 [package]
-name = "polyio"
-description = "PolyIO-rs"
+name = "aetherio"
+description = "AetherIO-rs"
 version = { workspace = true }
 license = { workspace = true }
 edition = { workspace = true }
@@ -15,7 +15,7 @@ path = "src/lib.rs"
 
 [features]
 default = []
-# Test-only helpers (`polyio::testing`). Enable as a dev-dependency.
+# Test-only helpers (`aetherio::testing`). Enable as a dev-dependency.
 testing = []
 
 [dependencies]

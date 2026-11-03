@@ -9,7 +9,7 @@ pub mod testing;
 
 pub use archive::*;
 pub use error::IOError;
-pub(crate) use error::PolyIOResult;
+pub(crate) use error::AetherIOResult;
 pub use file::*;
 pub use hash::*;
 pub use system::*;

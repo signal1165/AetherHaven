@@ -22,9 +22,9 @@ pub async fn remove_mods_link(folder_name: &str) {
         return;
     };
 
-    match polyio::symlink_metadata(&link).await {
+    match aetherio::symlink_metadata(&link).await {
         Ok(meta) if meta.file_type().is_symlink() => {
-            if let Err(err) = polyio::remove_symlink_dir(&link).await {
+            if let Err(err) = aetherio::remove_symlink_dir(&link).await {
                 tracing::warn!(folder = folder_name, error = %err, "failed to clear cluster mods link");
             }
         }

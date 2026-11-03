@@ -103,7 +103,7 @@ mod tests {
 
     #[test]
     fn a_foreign_url_is_not_ours() {
-        assert_eq!(parse_launch_url("https://polyfrost.org/pack"), None);
+        assert_eq!(parse_launch_url("https://github.com/signal1165/AetherHaven/pack"), None);
         assert_eq!(parse_launch_url("file:///etc/passwd"), None);
         assert_eq!(parse_launch_url(""), None);
     }

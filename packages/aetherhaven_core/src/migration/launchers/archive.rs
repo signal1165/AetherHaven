@@ -26,7 +26,7 @@ fn belongs_to(prefixes: &[String], name: &str) -> bool {
 }
 
 async fn refuse_unsupported(path: &Path, prefixes: &[String]) -> LauncherResult<()> {
-    let configs = polyio::read_zip_file_entries(path, |name| {
+    let configs = aetherio::read_zip_file_entries(path, |name| {
         let name = normalized(name);
         prefixes.iter().any(|prefix| {
             name == format!("{prefix}{PACK_CONFIG}")
@@ -94,7 +94,7 @@ fn instance_prefixes(names: &[String]) -> Vec<String> {
 
 #[tracing::instrument(level = "debug")]
 pub async fn is_instance_archive(path: &Path) -> bool {
-    match polyio::zip_entry_names(path).await {
+    match aetherio::zip_entry_names(path).await {
         Ok(names) => !instance_prefixes(&names).is_empty(),
         Err(_) => false,
     }
@@ -114,7 +114,7 @@ fn space_problem(unpacked: u64, staging: &Path) -> Option<String> {
 
 #[tracing::instrument]
 pub async fn open_instance_archive(path: &Path) -> LauncherResult<InstanceArchive> {
-    let names = polyio::zip_entry_names(path).await?;
+    let names = aetherio::zip_entry_names(path).await?;
     let prefixes = instance_prefixes(&names);
     if prefixes.is_empty() {
         return Err(not_an_instance());
@@ -122,9 +122,9 @@ pub async fn open_instance_archive(path: &Path) -> LauncherResult<InstanceArchiv
     refuse_unsupported(path, &prefixes).await?;
 
     let _unpacking = UNPACKING.lock().await;
-    let unpacked = polyio::zip_uncompressed_size(path, |name| belongs_to(&prefixes, name)).await?;
+    let unpacked = aetherio::zip_uncompressed_size(path, |name| belongs_to(&prefixes, name)).await?;
     let staging = aetherhaven_common::paths::import_staging_dir()?;
-    polyio::create_dir_all(&staging).await?;
+    aetherio::create_dir_all(&staging).await?;
     if let Some(reason) = space_problem(unpacked, &staging) {
         return Err(ContentError::InvalidData { reason }.into());
     }
@@ -132,13 +132,13 @@ pub async fn open_instance_archive(path: &Path) -> LauncherResult<InstanceArchiv
     let workdir = staging.join(format!("{WORKDIR_PREFIX}{}", uuid::Uuid::new_v4()));
     let opened = async {
         let wanted = prefixes.clone();
-        polyio::extract_zip_limited(path, &workdir, unpacked, move |name| {
+        aetherio::extract_zip_limited(path, &workdir, unpacked, move |name| {
             belongs_to(&wanted, name)
         })
         .await?;
         let mut instances = Vec::new();
         for prefix in &prefixes {
-            let dir = workdir.join(polyio::sanitize_path(prefix.trim_end_matches('/')));
+            let dir = workdir.join(aetherio::sanitize_path(prefix.trim_end_matches('/')));
             match prism::read_exported(&dir).await {
                 Ok(Some(mut instance)) => {
                     instance.settings.drop_commands();
@@ -173,7 +173,7 @@ pub async fn sweep_instance_archives() {
     let Ok(staging) = aetherhaven_common::paths::import_staging_dir() else {
         return;
     };
-    let Ok(mut entries) = polyio::read_dir(staging).await else {
+    let Ok(mut entries) = aetherio::read_dir(staging).await else {
         return;
     };
     while let Ok(Some(entry)) = entries.next_entry().await {
@@ -196,7 +196,7 @@ pub async fn sweep_instance_archives() {
 }
 
 pub async fn discard_instance_archive(workdir: &Path) {
-    if let Err(err) = polyio::remove_dir_all(workdir).await {
+    if let Err(err) = aetherio::remove_dir_all(workdir).await {
         tracing::debug!(dir = %workdir.display(), error = %err, "could not remove an unpacked instance");
     }
 }

@@ -129,7 +129,7 @@ async fn packs_survive_hand_edits_and_dedicated_clusters_keep_their_own() {
     let own_dir = dedicated.dir().unwrap();
     import(dedicated.id, own_dir.join("incoming"), "solo.zip").await;
     std::fs::remove_dir_all(own_dir.join("resourcepacks")).ok();
-    polyio::symlink_dir(
+    aetherio::symlink_dir(
         shared_dir.join("resourcepacks"),
         own_dir.join("resourcepacks"),
     )
@@ -371,7 +371,7 @@ async fn packs_survive_hand_edits_and_dedicated_clusters_keep_their_own() {
     .await
     .unwrap();
 
-    let scratch = polyio::testing::ScratchDir::new("packs-folder");
+    let scratch = aetherio::testing::ScratchDir::new("packs-folder");
     let file = scratch.path().join("Source.mrpack");
     export_cluster(&state, source.id, &file, ExportMode::AetherHaven, None)
         .await

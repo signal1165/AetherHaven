@@ -170,12 +170,12 @@ impl BadModList {
     }
 
     pub fn find(&self, sha1: &str) -> Option<&BadMod> {
-        let sha1 = polyio::normalize_hash(sha1);
+        let sha1 = aetherio::normalize_hash(sha1);
         self.bad_mods.iter().find(|entry| {
             entry
                 .hash
                 .as_deref()
-                .is_some_and(|hash| polyio::normalize_hash(hash) == sha1)
+                .is_some_and(|hash| aetherio::normalize_hash(hash) == sha1)
         })
     }
 
@@ -341,7 +341,7 @@ pub async fn resolve_alternatives(
             let hit = alternative
                 .hash
                 .as_deref()
-                .and_then(|hash| by_hash.get(&polyio::normalize_hash(hash)));
+                .and_then(|hash| by_hash.get(&aetherio::normalize_hash(hash)));
             (alternative, hit)
         })
         .collect();

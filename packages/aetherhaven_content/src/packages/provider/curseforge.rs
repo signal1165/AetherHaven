@@ -271,7 +271,7 @@ impl PackageProvider for CurseForgeProvider {
             let file_sha1 = version
                 .files
                 .first()
-                .map(|f| polyio::normalize_hash(&f.sha1));
+                .map(|f| aetherio::normalize_hash(&f.sha1));
 
             let fp = m.file.file_fingerprint;
 

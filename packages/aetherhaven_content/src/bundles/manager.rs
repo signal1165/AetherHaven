@@ -104,7 +104,7 @@ impl BundlesManager {
         bundle_dao::hide_bundles_not_in(&ctx.db, &remote_paths).await?;
 
         let bundles_root = paths::bundles_dir()?;
-        polyio::create_dir_all(&bundles_root.join("bundles")).await?;
+        aetherio::create_dir_all(&bundles_root.join("bundles")).await?;
 
         let mut synced_all = true;
         for entry in manifest.remote_paths() {
@@ -323,7 +323,7 @@ async fn download_bundle_if_needed(
     }
 
     tracing::debug!("downloading bundle from remote: {url}");
-    let expected = polyio::Checksum::sha1(expected_sha1);
+    let expected = aetherio::Checksum::sha1(expected_sha1);
     aetherhaven_net::download_verified(
         &ctx.net,
         &ctx.events,

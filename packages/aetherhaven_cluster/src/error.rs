@@ -8,7 +8,7 @@ pub type ClusterResult<T> = Result<T, ClusterError>;
 #[derive(Debug, Error)]
 pub enum ClusterError {
     #[error(transparent)]
-    Io(#[from] polyio::IOError),
+    Io(#[from] aetherio::IOError),
 
     #[error(transparent)]
     StdIo(#[from] std::io::Error),

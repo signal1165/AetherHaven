@@ -57,7 +57,7 @@ pub fn manifest_path(dir: &Path, name: &str) -> PathBuf {
 /// An unparseable manifest reads as `None` not an error
 /// stashing links as user content is recoverable refusing to launch is not
 pub async fn load(dir: &Path, name: &str) -> Option<MaterializedManifest> {
-    let raw = polyio::read_to_string(manifest_path(dir, name))
+    let raw = aetherio::read_to_string(manifest_path(dir, name))
         .await
         .ok()?;
 
@@ -86,13 +86,13 @@ pub async fn save(dir: &Path, name: &str, manifest: &MaterializedManifest) {
         }
     };
 
-    if let Err(err) = polyio::write(manifest_path(dir, name), body).await {
+    if let Err(err) = aetherio::write(manifest_path(dir, name), body).await {
         tracing::warn!(error = %err, "failed to write materialized manifest");
     }
 }
 
 pub async fn clear(dir: &Path, name: &str) {
-    polyio::remove_file(manifest_path(dir, name)).await.ok();
+    aetherio::remove_file(manifest_path(dir, name)).await.ok();
 }
 
 static MANIFEST_LOCK: tokio::sync::Mutex<()> = tokio::sync::Mutex::const_new(());
@@ -136,9 +136,9 @@ mod tests {
 
     #[tokio::test]
     async fn round_trips_through_the_game_dir() {
-        let root = polyio::testing::ScratchDir::new("manifest_round_trip");
+        let root = aetherio::testing::ScratchDir::new("manifest_round_trip");
         let dir = root.path();
-        polyio::create_dir_all(dir).await.unwrap();
+        aetherio::create_dir_all(dir).await.unwrap();
 
         assert!(load(dir, MANIFEST_NAME).await.is_none(), "no manifest yet");
 
@@ -160,9 +160,9 @@ mod tests {
 
     #[tokio::test]
     async fn the_two_manifests_do_not_collide() {
-        let root = polyio::testing::ScratchDir::new("manifest_two_names");
+        let root = aetherio::testing::ScratchDir::new("manifest_two_names");
         let dir = root.path();
-        polyio::create_dir_all(dir).await.unwrap();
+        aetherio::create_dir_all(dir).await.unwrap();
 
         save(dir, MODS_MANIFEST_NAME, &manifest()).await;
 
@@ -182,10 +182,10 @@ mod tests {
 
     #[tokio::test]
     async fn garbage_manifest_reads_as_absent() {
-        let root = polyio::testing::ScratchDir::new("manifest_garbage");
+        let root = aetherio::testing::ScratchDir::new("manifest_garbage");
         let dir = root.path();
-        polyio::create_dir_all(dir).await.unwrap();
-        polyio::write(manifest_path(dir, MANIFEST_NAME), b"not json".as_slice())
+        aetherio::create_dir_all(dir).await.unwrap();
+        aetherio::write(manifest_path(dir, MANIFEST_NAME), b"not json".as_slice())
             .await
             .unwrap();
 

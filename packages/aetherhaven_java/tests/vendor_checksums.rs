@@ -1,6 +1,6 @@
 use aetherhaven_java::vendors::runtime_providers;
 use aetherhaven_net::{NetConfig, RequestClient};
-use polyio::ChecksumAlgorithm;
+use aetherio::ChecksumAlgorithm;
 
 /// A major every vendor still publishes so a listing coming back empty means
 /// the query is wrong rather than the release being retired

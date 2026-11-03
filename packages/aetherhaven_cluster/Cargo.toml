@@ -17,7 +17,7 @@ path = "src/lib.rs"
 aetherhaven_common.workspace = true
 aetherhaven_db.workspace = true
 aetherhaven_net.workspace = true
-polyio.workspace = true
+aetherio.workspace = true
 
 tokio.workspace = true
 

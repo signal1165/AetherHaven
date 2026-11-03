@@ -415,7 +415,7 @@ pub async fn cape_texture(url: &str) -> Result<Bytes, PlusError> {
         return Ok(bytes);
     }
 
-    let entry = polyio::read_zip_bytes_entry(bytes.to_vec(), |name| {
+    let entry = aetherio::read_zip_bytes_entry(bytes.to_vec(), |name| {
         let file = name.rsplit('/').next().unwrap_or(name);
         let texture = !name.contains("__MACOSX")
             && !file.starts_with("._")
@@ -442,7 +442,7 @@ pub async fn bundle_files(url: &str) -> Result<Vec<(String, Bytes)>, PlusError> 
         return Ok(vec![(name.to_string(), bytes)]);
     }
 
-    let entries = polyio::read_zip_bytes_entries(bytes.to_vec())
+    let entries = aetherio::read_zip_bytes_entries(bytes.to_vec())
         .await
         .map_err(|err| PlusError::Asset(err.to_string()))?;
     Ok(entries

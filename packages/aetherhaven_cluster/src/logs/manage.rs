@@ -12,7 +12,7 @@ use super::{LogFileInfo, LogKind, LogLevel, LogLine, LogsError, ReadOptions};
 /// Restricted to cluster dirs the launcher's own logs belong to the live
 /// console and must not be readable deletable or uploadable from a cluster page
 pub(super) fn ensure_allowed(path: &Path) -> ClusterResult<PathBuf> {
-    polyio::ensure_under(path, [paths::clusters_dir()?])?
+    aetherio::ensure_under(path, [paths::clusters_dir()?])?
         .ok_or_else(|| LogsError::InvalidName(path.display().to_string()).into())
 }
 
@@ -136,9 +136,9 @@ pub(super) async fn read_file_string(path: &Path) -> ClusterResult<String> {
         .is_some_and(|e| e.eq_ignore_ascii_case("gz"));
 
     let bytes = if is_gz {
-        polyio::read_gz(path).await?
+        aetherio::read_gz(path).await?
     } else {
-        polyio::read(path).await?
+        aetherio::read(path).await?
     };
     Ok(String::from_utf8(bytes)
         .unwrap_or_else(|err| String::from_utf8_lossy(err.as_bytes()).into_owned()))
@@ -155,5 +155,5 @@ pub async fn read_log_at(path: &Path, opts: &ReadOptions) -> ClusterResult<Vec<L
 pub async fn delete_log_at(path: &Path) -> ClusterResult<()> {
     let path = ensure_allowed(path)?;
 
-    Ok(polyio::remove_file(&path).await?)
+    Ok(aetherio::remove_file(&path).await?)
 }

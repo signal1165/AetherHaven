@@ -63,7 +63,7 @@ impl JarManifest {
 
 #[tracing::instrument(level = "debug", fields(jar = %jar.display()))]
 pub async fn read_jar_manifest(jar: &Path) -> JarManifest {
-    let entries = match polyio::read_zip_file_entries(jar, |name| MANIFESTS.contains(&name)).await {
+    let entries = match aetherio::read_zip_file_entries(jar, |name| MANIFESTS.contains(&name)).await {
         Ok(entries) => entries,
         Err(err) => {
             tracing::debug!("could not read {}: {err}", jar.display());
@@ -104,7 +104,7 @@ pub struct JarModId {
 
 #[tracing::instrument(level = "debug", fields(jar = %jar.display()))]
 pub async fn read_jar_mod_id(jar: &Path) -> Option<JarModId> {
-    let entries = polyio::read_zip_file_entries(jar, |name| MANIFESTS.contains(&name))
+    let entries = aetherio::read_zip_file_entries(jar, |name| MANIFESTS.contains(&name))
         .await
         .inspect_err(|err| tracing::debug!("could not read {}: {err}", jar.display()))
         .ok()?;
@@ -119,7 +119,7 @@ const MAX_BUNDLED_JARS: usize = 64;
 
 #[tracing::instrument(level = "debug", fields(jar = %jar.display()))]
 pub async fn read_jar_bundled_mod_ids(jar: &Path) -> Vec<JarModId> {
-    let Ok(entries) = polyio::read_zip_file_entries(jar, |name| name == FABRIC).await else {
+    let Ok(entries) = aetherio::read_zip_file_entries(jar, |name| name == FABRIC).await else {
         return Vec::new();
     };
 
@@ -146,7 +146,7 @@ pub async fn read_jar_bundled_mod_ids(jar: &Path) -> Vec<JarModId> {
     }
 
     let Ok(mut cursor) =
-        polyio::ZipEntryCursor::open(jar, |name| bundled.iter().any(|file| file == name)).await
+        aetherio::ZipEntryCursor::open(jar, |name| bundled.iter().any(|file| file == name)).await
     else {
         return Vec::new();
     };
@@ -157,7 +157,7 @@ pub async fn read_jar_bundled_mod_ids(jar: &Path) -> Vec<JarModId> {
             continue;
         };
         let Ok(manifest) =
-            polyio::try_read_zip_entry_bytes(std::io::Cursor::new(bytes), FABRIC).await
+            aetherio::try_read_zip_entry_bytes(std::io::Cursor::new(bytes), FABRIC).await
         else {
             continue;
         };
@@ -215,7 +215,7 @@ fn is_placeholder_id(id: &str) -> bool {
 
 #[tracing::instrument(level = "debug", fields(jar = %jar.display()))]
 pub async fn read_jar_loader(jar: &Path) -> Option<GameLoader> {
-    let entries = polyio::read_zip_file_entries(jar, |name| MANIFESTS.contains(&name))
+    let entries = aetherio::read_zip_file_entries(jar, |name| MANIFESTS.contains(&name))
         .await
         .inspect_err(|err| tracing::debug!("could not read {}: {err}", jar.display()))
         .ok()?;
@@ -242,7 +242,7 @@ pub async fn read_jar_loader(jar: &Path) -> Option<GameLoader> {
 #[tracing::instrument(level = "debug", fields(jar = %jar.display()))]
 pub async fn read_jar_icon(jar: &Path, entry: &str) -> Option<Vec<u8>> {
     let entry = entry.to_string();
-    let found = polyio::read_zip_file_entries(jar, |name| name == entry)
+    let found = aetherio::read_zip_file_entries(jar, |name| name == entry)
         .await
         .inspect_err(|err| tracing::debug!("no icon in {}: {err}", jar.display()))
         .ok()?;
@@ -530,7 +530,7 @@ fn is_nested_jar(name: &str) -> bool {
 
 #[tracing::instrument(level = "debug", fields(jar = %jar.display()))]
 pub async fn read_jar_dependencies(jar: &Path) -> JarDependencies {
-    let entries = match polyio::read_zip_file_entries(jar, |name| {
+    let entries = match aetherio::read_zip_file_entries(jar, |name| {
         MANIFESTS.contains(&name) || is_nested_jar(name)
     })
     .await
@@ -574,7 +574,7 @@ pub async fn read_jar_dependencies(jar: &Path) -> JarDependencies {
 async fn nested_provides(bytes: &[u8]) -> Vec<String> {
     let mut ids = Vec::new();
     for wanted in MANIFESTS {
-        let Ok(data) = polyio::try_read_zip_entry_bytes(std::io::Cursor::new(bytes), wanted).await
+        let Ok(data) = aetherio::try_read_zip_entry_bytes(std::io::Cursor::new(bytes), wanted).await
         else {
             continue;
         };

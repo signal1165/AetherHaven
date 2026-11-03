@@ -333,7 +333,7 @@ async fn start(
     stage(LaunchStage::Launching);
 
     let cwd = game_dir;
-    polyio::create_dir_all(&cwd).await.ok();
+    aetherio::create_dir_all(&cwd).await.ok();
 
     if let Err(err) = crate::game::write_allowed_symlinks(&cwd).await {
         tracing::warn!(cluster_id, error = %err, "failed to write allowed_symlinks.txt");
@@ -359,7 +359,7 @@ async fn start(
         .join(&version_name)
         .join(format!("{version_name}.jar"));
     let natives = paths::natives_dir()?.join(&version_name);
-    polyio::create_dir_all(&natives).await?;
+    aetherio::create_dir_all(&natives).await?;
     let libraries = paths::libraries_dir()?;
     let assets = paths::assets_dir()?;
 
@@ -471,7 +471,7 @@ async fn start(
 
     let log_path = aetherhaven_cluster::logs::cluster_output_log(&cluster)?;
     if let Some(parent) = log_path.parent() {
-        polyio::create_dir_all(parent).await.ok();
+        aetherio::create_dir_all(parent).await.ok();
     }
 
     // A file not a pipe a pipe would die with the launcher and take the game's

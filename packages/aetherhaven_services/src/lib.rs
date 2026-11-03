@@ -324,7 +324,7 @@ async fn account_changed(auth: &aetherhaven_auth::AuthService, id: Uuid) -> bool
 fn generate_server_id() -> String {
     let mut bytes = [0u8; 20];
     rand::rng().fill_bytes(&mut bytes);
-    polyio::to_hex(&bytes)
+    aetherio::to_hex(&bytes)
 }
 
 #[cfg(test)]

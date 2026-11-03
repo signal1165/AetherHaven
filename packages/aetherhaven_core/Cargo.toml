@@ -18,7 +18,7 @@ default = []
 
 [dev-dependencies]
 async-tungstenite = {version = "=0.35.0", features = ["tokio-runtime"]}
-polyio = {workspace = true, features = ["testing"]}
+aetherio = {workspace = true, features = ["testing"]}
 
 [dependencies]
 # core (extra)
@@ -35,7 +35,7 @@ aetherhaven_java.workspace = true
 aetherhaven_mc.workspace = true
 aetherhaven_net.workspace = true
 aetherhaven_services.workspace = true
-polyio.workspace = true
+aetherio.workspace = true
 
 # logging
 tracing-futures.workspace = true

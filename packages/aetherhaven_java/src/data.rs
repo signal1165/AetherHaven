@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 
-use polyio::Checksum;
+use aetherio::Checksum;
 use serde::{Deserialize, Serialize};
 
 use crate::vendors::JavaVendor;

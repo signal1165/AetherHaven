@@ -21,7 +21,7 @@ pub enum ContentError {
     Sql(#[from] sqlx::Error),
 
     #[error(transparent)]
-    Io(#[from] polyio::IOError),
+    Io(#[from] aetherio::IOError),
 
     #[error(transparent)]
     StdIo(#[from] std::io::Error),
@@ -47,8 +47,8 @@ impl ContentError {
     pub fn is_transient(&self) -> bool {
         match self {
             Self::Request(source) => source.is_transient(),
-            Self::Io(polyio::IOError::IOError(source))
-            | Self::Io(polyio::IOError::PathIOError { source, .. })
+            Self::Io(aetherio::IOError::IOError(source))
+            | Self::Io(aetherio::IOError::PathIOError { source, .. })
             | Self::StdIo(source) => {
                 use std::io::ErrorKind;
                 matches!(

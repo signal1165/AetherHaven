@@ -12,7 +12,7 @@
     <p>AetherHaven is a next-generation open source Minecraft launcher by AetherHaven.</p>
   </description>
   <launchable type="desktop-id">org.aetherhaven.AetherHaven.desktop</launchable>
-  <url type="homepage">https://polyfrost.org/projects/aetherhaven</url>
+  <url type="homepage">https://github.com/signal1165/AetherHaven</url>
   <url type="bugtracker">https://github.com/signal1165/AetherHaven/issues</url>
   <url type="vcs-browser">https://github.com/signal1165/AetherHaven</url>
   <content_rating type="oars-1.1"/>

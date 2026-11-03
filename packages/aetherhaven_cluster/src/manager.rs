@@ -186,7 +186,7 @@ impl ClusterManager {
             }
             Err(err) => {
                 tracing::warn!(name = %name, error = %err, "cluster creation failed, cleaning up directory");
-                let _ = polyio::remove_dir_all(&cluster_path).await;
+                let _ = aetherio::remove_dir_all(&cluster_path).await;
                 Err(err)
             }
         }
@@ -257,8 +257,8 @@ impl ClusterManager {
 
         let dir = cluster.dir()?;
         if !aetherhaven_common::paths::cluster_uses_dedicated_dir(&cluster.folder_name) {
-            polyio::create_dir_all(&dir).await?;
-            polyio::write(dir.join(aetherhaven_common::paths::DEDICATED_MARKER), b"")
+            aetherio::create_dir_all(&dir).await?;
+            aetherio::write(dir.join(aetherhaven_common::paths::DEDICATED_MARKER), b"")
                 .await
                 .ok();
             tracing::info!(
@@ -277,7 +277,7 @@ impl ClusterManager {
     pub async fn refresh_identity(&self, cluster_id: ClusterId) -> ClusterResult<()> {
         let cluster = self.get(cluster_id).await?;
         let dir = cluster.dir()?;
-        let recorded = polyio::try_exists(dir.join(aetherhaven_common::paths::INSTANCE_FILE))
+        let recorded = aetherio::try_exists(dir.join(aetherhaven_common::paths::INSTANCE_FILE))
             .await
             .unwrap_or(false);
 
@@ -291,7 +291,7 @@ impl ClusterManager {
         let Ok(trash) = aetherhaven_common::paths::cluster_trash_dir() else {
             return;
         };
-        let Ok(mut entries) = polyio::read_dir(&trash).await else {
+        let Ok(mut entries) = aetherio::read_dir(&trash).await else {
             return;
         };
 
@@ -309,8 +309,8 @@ impl ClusterManager {
                 let Ok(home) = aetherhaven_common::paths::cluster_dir(folder) else {
                     continue;
                 };
-                if polyio::symlink_metadata(&home).await.is_err()
-                    && let Err(err) = polyio::rename(&path, &home).await
+                if aetherio::symlink_metadata(&home).await.is_err()
+                    && let Err(err) = aetherio::rename(&path, &home).await
                 {
                     tracing::warn!(cluster_id = id, error = %err, "failed to return a trashed cluster folder whose cluster still exists");
                 }
@@ -318,8 +318,8 @@ impl ClusterManager {
             }
 
             let removed = match entry.file_type().await {
-                Ok(kind) if kind.is_dir() => polyio::remove_dir_all(&path).await,
-                _ => polyio::remove_file(&path).await,
+                Ok(kind) if kind.is_dir() => aetherio::remove_dir_all(&path).await,
+                _ => aetherio::remove_file(&path).await,
             };
             match removed {
                 Ok(()) => {
@@ -340,7 +340,7 @@ impl ClusterManager {
     ) -> ClusterResult<String> {
         let cluster = self.get(cluster_id).await?;
         let dir = cluster.dir()?;
-        polyio::create_dir_all(&dir).await?;
+        aetherio::create_dir_all(&dir).await?;
 
         let original_extension = source
             .extension()
@@ -349,7 +349,7 @@ impl ClusterManager {
             .filter(|ext| matches!(ext.as_str(), "png" | "jpg" | "jpeg" | "webp" | "gif"))
             .unwrap_or_else(|| "png".to_string());
 
-        let raw = polyio::read(source).await?;
+        let raw = aetherio::read(source).await?;
         let (bytes, shrunk) = tokio::task::spawn_blocking(move || shrink_cover(raw))
             .await
             .map_err(|err| ClusterError::StdIo(std::io::Error::other(err)))?;
@@ -364,7 +364,7 @@ impl ClusterManager {
             chrono::Utc::now().timestamp_millis()
         );
         let path = dir.join(&file_name);
-        polyio::write(&path, &bytes).await?;
+        aetherio::write(&path, &bytes).await?;
 
         let patch = ClusterPatch {
             cover_path: Some(Some(file_name.clone())),
@@ -373,7 +373,7 @@ impl ClusterManager {
         let row = match cluster_dao::update(&self.db, cluster_id, &patch).await {
             Ok(row) => row,
             Err(err) => {
-                polyio::remove_file(&path).await.ok();
+                aetherio::remove_file(&path).await.ok();
                 return Err(err.into());
             }
         };
@@ -393,14 +393,14 @@ impl ClusterManager {
     }
 
     async fn clear_cover_files(&self, dir: &std::path::Path, keep: Option<&str>) {
-        let Ok(mut entries) = polyio::read_dir(dir).await else {
+        let Ok(mut entries) = aetherio::read_dir(dir).await else {
             return;
         };
         while let Ok(Some(entry)) = entries.next_entry().await {
             let name = entry.file_name();
             let name = name.to_string_lossy();
             if keep != Some(name.as_ref()) && is_cover_file(&name) {
-                polyio::remove_file(entry.path()).await.ok();
+                aetherio::remove_file(entry.path()).await.ok();
             }
         }
     }
@@ -424,7 +424,7 @@ impl ClusterManager {
         if !matches!(deleted, Ok(true))
             && let Some(trashed) = &trashed
             && let Ok(home) = cluster.dir()
-            && let Err(err) = polyio::rename(trashed, &home).await
+            && let Err(err) = aetherio::rename(trashed, &home).await
         {
             tracing::warn!(cluster_id, error = %err, "failed to put the cluster folder back after its row could not be deleted");
         }
@@ -435,7 +435,7 @@ impl ClusterManager {
         remove_mods_link(&cluster.folder_name).await;
 
         if let Some(trashed) = trashed {
-            if let Err(err) = polyio::remove_dir_all(&trashed).await {
+            if let Err(err) = aetherio::remove_dir_all(&trashed).await {
                 tracing::warn!(
                     cluster_id,
                     dir = %trashed.display(),
@@ -446,7 +446,7 @@ impl ClusterManager {
         } else if remove_files {
             let path = cluster.dir()?;
             if path.exists() {
-                polyio::remove_dir_all(&path).await?;
+                aetherio::remove_dir_all(&path).await?;
             }
         }
 
@@ -489,10 +489,10 @@ impl ClusterManager {
 
         let marker = cluster.dedicated_marker()?;
         if dedicated {
-            polyio::create_dir_all(cluster.dir()?).await?;
-            polyio::write(&marker, b"").await?;
+            aetherio::create_dir_all(cluster.dir()?).await?;
+            aetherio::write(&marker, b"").await?;
         } else if marker.exists() {
-            polyio::remove_file(&marker).await?;
+            aetherio::remove_file(&marker).await?;
         }
         Ok(())
     }
@@ -588,11 +588,11 @@ async fn create_inner(
     folder_name: &str,
     cluster_path: &std::path::Path,
 ) -> ClusterResult<Cluster> {
-    polyio::create_dir_all(cluster_path).await?;
+    aetherio::create_dir_all(cluster_path).await?;
     ensure_content_dirs(cluster_path).await?;
 
     if options.kind.is_isolated() {
-        polyio::write(
+        aetherio::write(
             cluster_path.join(aetherhaven_common::paths::DEDICATED_MARKER),
             b"",
         )
@@ -659,19 +659,19 @@ fn is_reserved_device_name(stem: &str) -> bool {
 
 async fn move_to_trash(cluster: &Cluster) -> Option<std::path::PathBuf> {
     let home = cluster.dir().ok()?;
-    if polyio::symlink_metadata(&home).await.is_err() {
+    if aetherio::symlink_metadata(&home).await.is_err() {
         return None;
     }
 
     let trash = aetherhaven_common::paths::cluster_trash_dir().ok()?;
-    polyio::create_dir_all(&trash).await.ok()?;
+    aetherio::create_dir_all(&trash).await.ok()?;
 
     let dest = trash.join(format!("{}-{}", cluster.id, cluster.folder_name));
-    if polyio::symlink_metadata(&dest).await.is_ok() {
-        polyio::remove_dir_all(&dest).await.ok();
+    if aetherio::symlink_metadata(&dest).await.is_ok() {
+        aetherio::remove_dir_all(&dest).await.ok();
     }
 
-    match polyio::rename(&home, &dest).await {
+    match aetherio::rename(&home, &dest).await {
         Ok(()) => Some(dest),
         Err(err) => {
             tracing::warn!(
@@ -759,7 +759,7 @@ async fn ensure_content_dirs(cluster_path: &std::path::Path) -> ClusterResult<()
         ContentType::DataPack,
         ContentType::World,
     ] {
-        polyio::create_dir_all(cluster_path.join(content_type.folder_name())).await?;
+        aetherio::create_dir_all(cluster_path.join(content_type.folder_name())).await?;
     }
     Ok(())
 }
@@ -781,7 +781,7 @@ async fn copy_from_shared(
     include_worlds: bool,
     on_progress: impl Fn(&str, u64, u64) + Send + Sync,
 ) -> ClusterResult<SyncReport> {
-    if polyio::canonicalize(shared).ok() == polyio::canonicalize(dest).ok() {
+    if aetherio::canonicalize(shared).ok() == aetherio::canonicalize(dest).ok() {
         return Ok(SyncReport::default());
     }
 
@@ -793,10 +793,10 @@ async fn copy_from_shared(
     let shared_saves = shared.join(crate::worlds::SAVES_DIR);
     let dest_saves = dest.join(crate::worlds::SAVES_DIR);
     let staging_root = dest.join(SYNC_STAGING);
-    polyio::remove_dir_all(&staging_root).await.ok();
+    aetherio::remove_dir_all(&staging_root).await.ok();
 
     let mut worlds = Vec::new();
-    if include_worlds && let Ok(mut entries) = polyio::read_dir(&shared_saves).await {
+    if include_worlds && let Ok(mut entries) = aetherio::read_dir(&shared_saves).await {
         while let Some(entry) = entries.next_entry().await? {
             if entry.path().join(crate::worlds::LEVEL_DAT).is_file() {
                 worlds.push(entry.file_name());
@@ -811,9 +811,9 @@ async fn copy_from_shared(
         on_progress(&format!("Syncing {name}"), done, total);
         let src = shared.join(name);
         if src.is_dir() {
-            polyio::copy_dir(&src, &dest.join(name), &[]).await?;
+            aetherio::copy_dir(&src, &dest.join(name), &[]).await?;
         } else if src.is_file() {
-            polyio::copy(&src, dest.join(name)).await?;
+            aetherio::copy(&src, dest.join(name)).await?;
         }
         done += 1;
     }
@@ -824,36 +824,36 @@ async fn copy_from_shared(
         on_progress(&format!("Syncing world {label}"), done, total);
         done += 1;
         let target = dest_saves.join(&name);
-        if polyio::symlink_metadata(&target).await.is_ok() {
+        if aetherio::symlink_metadata(&target).await.is_ok() {
             skipped.push(label);
             continue;
         }
 
         let staging = staging_root.join(&name);
         let copied = async {
-            polyio::create_dir_all(&staging).await?;
-            polyio::create_dir_all(&dest_saves).await?;
-            polyio::copy_dir(&shared_saves.join(&name), &staging, &["session.lock"]).await?;
+            aetherio::create_dir_all(&staging).await?;
+            aetherio::create_dir_all(&dest_saves).await?;
+            aetherio::copy_dir(&shared_saves.join(&name), &staging, &["session.lock"]).await?;
             rename_with_retry(&staging, &target).await
         }
         .await;
         if let Err(err) = copied {
-            polyio::remove_dir_all(&staging_root).await.ok();
+            aetherio::remove_dir_all(&staging_root).await.ok();
             return Err(err.into());
         }
     }
 
-    polyio::remove_dir_all(&staging_root).await.ok();
+    aetherio::remove_dir_all(&staging_root).await.ok();
     Ok(SyncReport { skipped, total })
 }
 
 async fn rename_with_retry(
     from: &std::path::Path,
     to: &std::path::Path,
-) -> Result<(), polyio::IOError> {
+) -> Result<(), aetherio::IOError> {
     let mut attempt = 0;
     loop {
-        match polyio::rename(from, to).await {
+        match aetherio::rename(from, to).await {
             Err(_) if attempt < 4 => {
                 attempt += 1;
                 tokio::time::sleep(std::time::Duration::from_millis(250 * attempt)).await;
@@ -878,8 +878,8 @@ mod tests {
 
     #[tokio::test]
     async fn syncing_overwrites_settings_but_never_an_existing_world() {
-        let shared = polyio::tempdir().await.expect("shared dir");
-        let dest = polyio::tempdir().await.expect("dest dir");
+        let shared = aetherio::tempdir().await.expect("shared dir");
+        let dest = aetherio::tempdir().await.expect("dest dir");
         let (shared, dest) = (shared.dir_path(), dest.dir_path());
 
         for (path, body) in [
@@ -892,24 +892,24 @@ mod tests {
             ("screenshots/a.png", "x"),
         ] {
             let path = shared.join(path);
-            polyio::create_dir_all(path.parent().unwrap())
+            aetherio::create_dir_all(path.parent().unwrap())
                 .await
                 .unwrap();
-            polyio::write(path, body.as_bytes().to_vec()).await.unwrap();
+            aetherio::write(path, body.as_bytes().to_vec()).await.unwrap();
         }
         for (path, body) in [("options.txt", "mine"), ("saves/Kept/level.dat", "mine")] {
             let path = dest.join(path);
-            polyio::create_dir_all(path.parent().unwrap())
+            aetherio::create_dir_all(path.parent().unwrap())
                 .await
                 .unwrap();
-            polyio::write(path, body.as_bytes().to_vec()).await.unwrap();
+            aetherio::write(path, body.as_bytes().to_vec()).await.unwrap();
         }
 
         let stale = dest.join(".sync-staging/Gone/region/r.0.0.mca");
-        polyio::create_dir_all(stale.parent().unwrap())
+        aetherio::create_dir_all(stale.parent().unwrap())
             .await
             .unwrap();
-        polyio::write(&stale, b"half".to_vec()).await.unwrap();
+        aetherio::write(&stale, b"half".to_vec()).await.unwrap();
 
         let steps = std::sync::Mutex::new(Vec::new());
         let report = copy_from_shared(shared, dest, true, |_, done, total| {
@@ -943,8 +943,8 @@ mod tests {
 
     #[tokio::test]
     async fn an_empty_shared_folder_reports_nothing_to_sync() {
-        let shared = polyio::tempdir().await.expect("shared dir");
-        let dest = polyio::tempdir().await.expect("dest dir");
+        let shared = aetherio::tempdir().await.expect("shared dir");
+        let dest = aetherio::tempdir().await.expect("dest dir");
 
         let report = copy_from_shared(shared.dir_path(), dest.dir_path(), true, |_, _, _| {})
             .await
@@ -956,15 +956,15 @@ mod tests {
 
     #[tokio::test]
     async fn settings_only_leaves_worlds_behind() {
-        let shared = polyio::tempdir().await.expect("shared dir");
-        let dest = polyio::tempdir().await.expect("dest dir");
+        let shared = aetherio::tempdir().await.expect("shared dir");
+        let dest = aetherio::tempdir().await.expect("dest dir");
         let (shared, dest) = (shared.dir_path(), dest.dir_path());
         for path in ["options.txt", "saves/New/level.dat"] {
             let path = shared.join(path);
-            polyio::create_dir_all(path.parent().unwrap())
+            aetherio::create_dir_all(path.parent().unwrap())
                 .await
                 .unwrap();
-            polyio::write(path, b"shared".to_vec()).await.unwrap();
+            aetherio::write(path, b"shared".to_vec()).await.unwrap();
         }
 
         let report = copy_from_shared(shared, dest, false, |_, _, _| {})

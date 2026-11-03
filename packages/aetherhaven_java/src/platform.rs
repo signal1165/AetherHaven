@@ -119,7 +119,7 @@ pub async fn set_gpu_preference(java_path: &std::path::Path, preference: u8) {
     let mut targets = Vec::new();
     for exe in GPU_PREFERENCE_EXECUTABLES {
         let path = dir.join(exe);
-        if polyio::try_exists(&path).await.unwrap_or(false) {
+        if aetherio::try_exists(&path).await.unwrap_or(false) {
             targets.push(path);
         }
     }

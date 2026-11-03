@@ -196,7 +196,7 @@ async fn move_cluster_files(cluster: &Cluster, report: &mut ResetReport) -> Laun
     });
 
     let mut moving: Vec<String> = Vec::new();
-    if let Ok(mut entries) = polyio::read_dir(&cluster_dir).await {
+    if let Ok(mut entries) = aetherio::read_dir(&cluster_dir).await {
         while let Ok(Some(entry)) = entries.next_entry().await {
             let name = entry.file_name().to_string_lossy().into_owned();
             if is_kept(cluster, &name, cover.as_deref()) {
@@ -205,7 +205,7 @@ async fn move_cluster_files(cluster: &Cluster, report: &mut ResetReport) -> Laun
             moving.push(name);
         }
     }
-    if polyio::symlink_metadata(cluster_dir.join(OVERRIDE_LOCK))
+    if aetherio::symlink_metadata(cluster_dir.join(OVERRIDE_LOCK))
         .await
         .is_ok()
     {
@@ -235,7 +235,7 @@ async fn move_cluster_files(cluster: &Cluster, report: &mut ResetReport) -> Laun
         cluster.folder_name,
         chrono::Local::now().format("%Y%m%d-%H%M%S")
     ));
-    polyio::create_dir_all(&backup).await?;
+    aetherio::create_dir_all(&backup).await?;
 
     for rel in moving {
         let from = cluster_dir.join(&rel);
@@ -246,7 +246,7 @@ async fn move_cluster_files(cluster: &Cluster, report: &mut ResetReport) -> Laun
         }
     }
 
-    polyio::create_dir_all(cluster_dir.join(ContentType::Mod.folder_name()))
+    aetherio::create_dir_all(cluster_dir.join(ContentType::Mod.folder_name()))
         .await
         .ok();
     report.backup_dir = Some(backup);
@@ -261,11 +261,11 @@ fn is_kept(cluster: &Cluster, name: &str, cover: Option<&str>) -> bool {
             && GLOBAL_TYPES.iter().any(|kind| kind.folder_name() == name))
 }
 
-async fn move_into_backup(from: &Path, to: &Path) -> Result<(), polyio::IOError> {
+async fn move_into_backup(from: &Path, to: &Path) -> Result<(), aetherio::IOError> {
     if let Some(parent) = to.parent() {
-        polyio::create_dir_all(parent).await?;
+        aetherio::create_dir_all(parent).await?;
     }
-    polyio::rename(from, to).await?;
+    aetherio::rename(from, to).await?;
     detach_symlinks(from, to).await;
     Ok(())
 }
@@ -276,11 +276,11 @@ async fn move_into_backup(from: &Path, to: &Path) -> Result<(), polyio::IOError>
 async fn detach_symlinks(original: &Path, moved: &Path) {
     let mut pending = vec![(original.to_path_buf(), moved.to_path_buf())];
     while let Some((original, moved)) = pending.pop() {
-        let Ok(meta) = polyio::symlink_metadata(&moved).await else {
+        let Ok(meta) = aetherio::symlink_metadata(&moved).await else {
             continue;
         };
         if meta.is_dir() {
-            let Ok(mut entries) = polyio::read_dir(&moved).await else {
+            let Ok(mut entries) = aetherio::read_dir(&moved).await else {
                 continue;
             };
             while let Ok(Some(entry)) = entries.next_entry().await {
@@ -293,7 +293,7 @@ async fn detach_symlinks(original: &Path, moved: &Path) {
             continue;
         }
 
-        let Ok(target) = polyio::read_link(&moved).await else {
+        let Ok(target) = aetherio::read_link(&moved).await else {
             continue;
         };
         let target = match original.parent() {
@@ -301,7 +301,7 @@ async fn detach_symlinks(original: &Path, moved: &Path) {
             _ => target,
         };
         // Linked folders stay links, copying one could pull in a whole shared tree
-        if !polyio::stat(&target).await.is_ok_and(|meta| meta.is_file()) {
+        if !aetherio::stat(&target).await.is_ok_and(|meta| meta.is_file()) {
             continue;
         }
         if let Err(err) = copy_over_link(&target, &moved).await {
@@ -310,12 +310,12 @@ async fn detach_symlinks(original: &Path, moved: &Path) {
     }
 }
 
-async fn copy_over_link(target: &Path, link: &Path) -> Result<(), polyio::IOError> {
+async fn copy_over_link(target: &Path, link: &Path) -> Result<(), aetherio::IOError> {
     let mut staging = link.as_os_str().to_owned();
     staging.push(".reset-copy");
     let staging = PathBuf::from(staging);
 
-    polyio::copy(target, &staging).await?;
-    polyio::remove_file(link).await?;
-    polyio::rename(&staging, link).await
+    aetherio::copy(target, &staging).await?;
+    aetherio::remove_file(link).await?;
+    aetherio::rename(&staging, link).await
 }

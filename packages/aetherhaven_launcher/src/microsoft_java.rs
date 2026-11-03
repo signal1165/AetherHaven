@@ -265,7 +265,7 @@ async fn unpin_to_automatic(
             .notify("Cluster not switched")
             .body(format!(
                 "Optimized Microsoft {major} JDK is ready but the cluster still points at its \
-                 old runtime: {err}. Please report to discord.gg/polyfrost"
+                 old runtime: {err}. Please report to discord.gg/aetherhaven"
             ))
             .error()
             .send(),

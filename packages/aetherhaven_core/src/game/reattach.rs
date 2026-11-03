@@ -432,8 +432,8 @@ async fn read_session_log(cluster: &Cluster) -> Option<SessionLog> {
 }
 
 async fn read_log(path: &Path) -> Option<SessionLog> {
-    let content = polyio::read_to_string(path).await.ok()?;
-    let modified = polyio::stat(path)
+    let content = aetherio::read_to_string(path).await.ok()?;
+    let modified = aetherio::stat(path)
         .await
         .ok()
         .and_then(|meta| meta.modified().ok())

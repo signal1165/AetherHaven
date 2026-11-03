@@ -28,7 +28,7 @@ async fn an_exported_instance_imports_with_its_content_and_details() {
     options.description = Some("Made for the weekend".into());
     let source = state.clusters.create(&global, options).await.unwrap();
 
-    let scratch = polyio::testing::ScratchDir::new("cluster-share");
+    let scratch = aetherio::testing::ScratchDir::new("cluster-share");
     let on = scratch.path().join("kept-on.jar");
     let off = scratch.path().join("switched-off.jar");
     std::fs::write(&on, jar("on")).unwrap();
@@ -151,7 +151,7 @@ async fn a_cached_modrinth_mod_is_exported_as_a_link() {
         .await
         .unwrap();
 
-    let scratch = polyio::testing::ScratchDir::new("cluster-share-linked");
+    let scratch = aetherio::testing::ScratchDir::new("cluster-share-linked");
     let dest = scratch.path().join("Linked.mrpack");
     let report = export_cluster(&state, source.id, &dest, ExportMode::AetherHaven, None)
         .await
@@ -229,11 +229,11 @@ async fn a_jar_from_the_modrinth_cache_is_linked_without_asking_modrinth() {
         source.id,
         "NoSuchVer",
         &bytes,
-        &polyio::sha1_bytes(&bytes),
+        &aetherio::sha1_bytes(&bytes),
     )
     .await;
 
-    let scratch = polyio::testing::ScratchDir::new("cluster-share-offline");
+    let scratch = aetherio::testing::ScratchDir::new("cluster-share-offline");
     let dest = scratch.path().join("Offline.mrpack");
     let report = export_cluster(&state, source.id, &dest, ExportMode::AetherHaven, None)
         .await
@@ -253,16 +253,16 @@ async fn a_cached_jar_that_changed_on_disk_stays_out_of_the_modrinth_index() {
     options.mc_loader_version = Some("0.16.5".into());
     let source = state.clusters.create(&global, options).await.unwrap();
 
-    let claimed = polyio::sha1_bytes(&jar("original"));
+    let claimed = aetherio::sha1_bytes(&jar("original"));
     link_modrinth_cached_jar(&state, source.id, "ChangedVer", &jar("changed"), &claimed).await;
 
-    let scratch = polyio::testing::ScratchDir::new("cluster-share-changed");
+    let scratch = aetherio::testing::ScratchDir::new("cluster-share-changed");
     let dest = scratch.path().join("Changed.mrpack");
     export_cluster(&state, source.id, &dest, ExportMode::AetherHaven, None)
         .await
         .unwrap();
 
-    let entries = polyio::read_zip_file_entries(&dest, |name| {
+    let entries = aetherio::read_zip_file_entries(&dest, |name| {
         name == "modrinth.index.json" || name == "aetherhaven.cluster.json"
     })
     .await
@@ -304,7 +304,7 @@ async fn write_archive(path: &std::path::Path, entries: Vec<(String, Vec<u8>)>) 
 #[tokio::test]
 async fn a_crafted_share_cannot_write_outside_its_folder_or_reach_unknown_hosts() {
     let state = aetherhaven_core::dev::ephemeral_state().await.unwrap();
-    let scratch = polyio::testing::ScratchDir::new("cluster-share-crafted");
+    let scratch = aetherio::testing::ScratchDir::new("cluster-share-crafted");
     let archive = scratch.path().join("crafted.mrpack");
     let marker = format!("aetherhaven-share-escape-{}.jar", std::process::id());
     let index = serde_json::json!({
@@ -371,7 +371,7 @@ async fn the_enabled_build_wins_when_two_share_a_file_name() {
     options.mc_loader_version = Some("0.16.5".into());
     let source = state.clusters.create(&global, options).await.unwrap();
 
-    let scratch = polyio::testing::ScratchDir::new("cluster-share-twins");
+    let scratch = aetherio::testing::ScratchDir::new("cluster-share-twins");
     let mut hashes = Vec::new();
     for tag in ["old", "new"] {
         let dir = scratch.path().join(tag);
@@ -393,11 +393,11 @@ async fn the_enabled_build_wins_when_two_share_a_file_name() {
         .unwrap();
     assert_eq!(report.embedded, vec!["mods/same.jar".to_string()]);
 
-    let packed = polyio::read_zip_file_entries(&dest, |name| name == "overrides/mods/same.jar")
+    let packed = aetherio::read_zip_file_entries(&dest, |name| name == "overrides/mods/same.jar")
         .await
         .unwrap();
     assert_eq!(packed.len(), 1);
-    assert_eq!(polyio::sha1_bytes(&packed[0].1), hashes[1]);
+    assert_eq!(aetherio::sha1_bytes(&packed[0].1), hashes[1]);
 }
 
 #[test]
@@ -466,7 +466,7 @@ async fn a_shared_aetherhaven_instance_counts_its_bundle_mods() {
         .expect("at least one bundle version");
     let loader = GameLoader::from_repr(group.mc_loader as u8).unwrap();
 
-    let scratch = polyio::testing::ScratchDir::new("cluster-share-bundles");
+    let scratch = aetherio::testing::ScratchDir::new("cluster-share-bundles");
     let archive = scratch.path().join("bundled.mrpack");
     let index = serde_json::json!({
         "formatVersion": 1,
@@ -522,7 +522,7 @@ async fn a_cover_that_is_not_a_png_is_exported_as_one() {
     options.mc_loader_version = Some("0.16.5".into());
     let source = state.clusters.create(&global, options).await.unwrap();
 
-    let scratch = polyio::testing::ScratchDir::new("cluster-share-cover");
+    let scratch = aetherio::testing::ScratchDir::new("cluster-share-cover");
     let jpeg = scratch.path().join("cover.jpg");
     image::RgbImage::from_pixel(8, 8, image::Rgb([200, 40, 40]))
         .save_with_format(&jpeg, image::ImageFormat::Jpeg)
@@ -538,7 +538,7 @@ async fn a_cover_that_is_not_a_png_is_exported_as_one() {
         .await
         .unwrap();
 
-    let entries = polyio::read_zip_file_entries(&dest, |name| name.starts_with("icon."))
+    let entries = aetherio::read_zip_file_entries(&dest, |name| name.starts_with("icon."))
         .await
         .unwrap();
     assert_eq!(entries.len(), 1);
@@ -565,7 +565,7 @@ async fn an_instance_without_a_pinned_loader_exports_a_concrete_one() {
         .unwrap();
     assert_eq!(source.mc_loader_version, None);
 
-    let scratch = polyio::testing::ScratchDir::new("cluster-share-loader");
+    let scratch = aetherio::testing::ScratchDir::new("cluster-share-loader");
     let dest = scratch.path().join("Unpinned.mrpack");
     export_cluster(&state, source.id, &dest, ExportMode::AetherHaven, None)
         .await
@@ -597,7 +597,7 @@ async fn compatibility_exports_write_bundle_mods_out_as_plain_mods() {
     options.mc_loader_version = Some("0.16.5".into());
     let source = state.clusters.create(&global, options).await.unwrap();
 
-    let scratch = polyio::testing::ScratchDir::new("cluster-share-compat");
+    let scratch = aetherio::testing::ScratchDir::new("cluster-share-compat");
     let from_bundle = scratch.path().join("from-bundle.jar");
     let own = scratch.path().join("own.jar");
     std::fs::write(&from_bundle, jar("bundle")).unwrap();
@@ -635,7 +635,7 @@ async fn compatibility_exports_write_bundle_mods_out_as_plain_mods() {
     .unwrap();
 
     let read_share = |path: std::path::PathBuf| async move {
-        let entries = polyio::read_zip_file_entries(&path, |name| name == "aetherhaven.cluster.json")
+        let entries = aetherio::read_zip_file_entries(&path, |name| name == "aetherhaven.cluster.json")
             .await
             .unwrap();
         serde_json::from_slice::<ClusterShare>(&entries[0].1).unwrap()
@@ -672,7 +672,7 @@ async fn compatibility_exports_write_bundle_mods_out_as_plain_mods() {
 #[tokio::test]
 async fn compatibility_exports_carry_the_modpacks_own_files_over() {
     let state = aetherhaven_core::dev::ephemeral_state().await.unwrap();
-    let scratch = polyio::testing::ScratchDir::new("cluster-share-carry");
+    let scratch = aetherio::testing::ScratchDir::new("cluster-share-carry");
     let pack = scratch.path().join("pack.mrpack");
     let index = serde_json::json!({
         "formatVersion": 1,
@@ -720,7 +720,7 @@ async fn compatibility_exports_carry_the_modpacks_own_files_over() {
     assert_eq!(report.carried, 2);
     assert_eq!(report.embedded, vec!["mods/inside.jar".to_string()]);
 
-    let entries = polyio::zip_entry_names(&dest).await.unwrap();
+    let entries = aetherio::zip_entry_names(&dest).await.unwrap();
     assert!(entries.contains(&"overrides/config/pack.json".to_string()));
     assert!(entries.contains(&"overrides/kubejs/startup_scripts/main.js".to_string()));
 
@@ -812,7 +812,7 @@ async fn cache_paths_never_leave_their_folder() {
 #[tokio::test]
 async fn crafted_download_names_in_a_share_are_refused() {
     let state = aetherhaven_core::dev::ephemeral_state().await.unwrap();
-    let scratch = polyio::testing::ScratchDir::new("cluster-share-download-names");
+    let scratch = aetherio::testing::ScratchDir::new("cluster-share-download-names");
     let archive = scratch.path().join("names.mrpack");
     let marker = format!("aetherhaven-download-escape-{}.jar", std::process::id());
     let index = serde_json::json!({
@@ -904,13 +904,13 @@ async fn ornithe_exports_name_fabric_for_other_launchers() {
     options.mc_loader_version = Some("0.16.5".into());
     let source = state.clusters.create(&global, options).await.unwrap();
 
-    let scratch = polyio::testing::ScratchDir::new("cluster-share-ornithe");
+    let scratch = aetherio::testing::ScratchDir::new("cluster-share-ornithe");
     let dest = scratch.path().join("Legacy.mrpack");
     export_cluster(&state, source.id, &dest, ExportMode::AetherHaven, None)
         .await
         .unwrap();
 
-    let entries = polyio::read_zip_file_entries(&dest, |name| {
+    let entries = aetherio::read_zip_file_entries(&dest, |name| {
         name == "modrinth.index.json" || name == "aetherhaven.cluster.json"
     })
     .await

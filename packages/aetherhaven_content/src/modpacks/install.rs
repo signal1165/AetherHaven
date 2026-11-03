@@ -194,8 +194,8 @@ pub async fn install_modpack(
     let mut to_write = Vec::new();
     for file in &contents.loose {
         if let Some(claimed) = owned.get(&file.path) {
-            let dest = root.join(polyio::sanitize_path(&file.path));
-            let edited = polyio::try_exists(&dest).await.unwrap_or(false)
+            let dest = root.join(aetherio::sanitize_path(&file.path));
+            let edited = aetherio::try_exists(&dest).await.unwrap_or(false)
                 && !aetherhaven_net::matches_on_disk(&dest, claimed).await
                 && !aetherhaven_net::matches_on_disk(&dest, &file.sha1).await;
             if edited {
@@ -205,8 +205,8 @@ pub async fn install_modpack(
             }
         }
         if imported && !owned.contains_key(&file.path) {
-            let dest = root.join(polyio::sanitize_path(&file.path));
-            if polyio::try_exists(&dest).await.unwrap_or(false) {
+            let dest = root.join(aetherio::sanitize_path(&file.path));
+            if aetherio::try_exists(&dest).await.unwrap_or(false) {
                 if !aetherhaven_net::matches_on_disk(&dest, &file.sha1).await {
                     report.kept.push(file.path.clone());
                 } else if claimed.contains(&file.path) {
@@ -515,7 +515,7 @@ async fn import_override_content(
         return Ok(hashes);
     }
 
-    let staging = polyio::tempdir().await?;
+    let staging = aetherio::tempdir().await?;
     let mut files = Vec::new();
 
     for (rel, entry, content_type) in bundled {
@@ -523,7 +523,7 @@ async fn import_override_content(
             report.failed.push(rel);
             continue;
         };
-        let hash = polyio::normalize_hash(&polyio::sha1_bytes(&bytes));
+        let hash = aetherio::normalize_hash(&aetherio::sha1_bytes(&bytes));
         hashes.push(hash.clone());
         let removed = matches!(
             find_override(overrides, install.bundle_name, &hash),
@@ -549,9 +549,9 @@ async fn import_override_content(
             .join(content_type.folder_name())
             .join(file_name);
         if let Some(parent) = path.parent() {
-            polyio::create_dir_all(parent).await?;
+            aetherio::create_dir_all(parent).await?;
         }
-        polyio::write(&path, bytes).await?;
+        aetherio::write(&path, bytes).await?;
         files.push((path, content_type));
     }
 
@@ -597,7 +597,7 @@ pub(super) async fn install_loose_file(
     progress: Option<&GroupedProgressSession>,
     ctx: &ContentCtx,
 ) -> ContentResult<()> {
-    let dest = root.join(polyio::sanitize_path(&file.path));
+    let dest = root.join(aetherio::sanitize_path(&file.path));
     let child = progress.map(|p| {
         let child = p.child(file.path.clone(), file.size.max(1), TaskCategory::Packages);
         child.set_phase(TaskPhase::Downloading);
@@ -626,16 +626,16 @@ pub async fn find_blocked_downloads(
 
     let mut found: Vec<(PathBuf, BlockedFile)> = Vec::new();
     for path in candidate_files(locations).await {
-        let Ok(meta) = polyio::stat(&path).await else {
+        let Ok(meta) = aetherio::stat(&path).await else {
             continue;
         };
         let Some(candidates) = by_size.get(&meta.len()) else {
             continue;
         };
-        let Ok(sha1) = polyio::sha1_file(&path).await else {
+        let Ok(sha1) = aetherio::sha1_file(&path).await else {
             continue;
         };
-        let sha1 = polyio::normalize_hash(&sha1);
+        let sha1 = aetherio::normalize_hash(&sha1);
 
         if let Some(file) = candidates.iter().find(|file| file.sha1 == sha1)
             && !found.iter().any(|(_, known)| known.sha1 == sha1)
@@ -650,7 +650,7 @@ pub async fn find_blocked_downloads(
 async fn candidate_files(locations: &[PathBuf]) -> Vec<PathBuf> {
     let mut files = Vec::new();
     for location in locations {
-        let Ok(meta) = polyio::stat(location).await else {
+        let Ok(meta) = aetherio::stat(location).await else {
             continue;
         };
         if meta.is_file() {
@@ -658,7 +658,7 @@ async fn candidate_files(locations: &[PathBuf]) -> Vec<PathBuf> {
             continue;
         }
 
-        let Ok(mut entries) = polyio::read_dir(location).await else {
+        let Ok(mut entries) = aetherio::read_dir(location).await else {
             continue;
         };
         while let Ok(Some(entry)) = entries.next_entry().await {
@@ -752,7 +752,7 @@ async fn cached_blocked_file(file: &BlockedFile, ctx: &ContentCtx) -> Option<Art
         .ok()
         .flatten()?;
     let path = store::artifact_absolute_path(&row.path).ok()?;
-    polyio::try_exists(&path)
+    aetherio::try_exists(&path)
         .await
         .unwrap_or(false)
         .then_some(row)
@@ -778,7 +778,7 @@ mod tests {
 
     #[tokio::test]
     async fn downloads_are_matched_by_hash_not_by_name() {
-        let dir = polyio::testing::ScratchDir::new("blocked-downloads");
+        let dir = aetherio::testing::ScratchDir::new("blocked-downloads");
         let wanted = b"the real jar";
         let renamed = dir.path().join("thing (1).jar");
         tokio::fs::write(&renamed, wanted).await.unwrap();
@@ -786,7 +786,7 @@ mod tests {
             .await
             .unwrap();
 
-        let sha1 = polyio::sha1_bytes(wanted);
+        let sha1 = aetherio::sha1_bytes(wanted);
         let found = find_blocked_downloads(
             &[dir.path().to_path_buf()],
             &[blocked(&sha1, wanted.len() as u64)],

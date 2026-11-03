@@ -47,7 +47,7 @@ pub async fn bundled_mods(
             continue;
         };
         let name = rel.rsplit('/').next().unwrap_or(&rel).to_string();
-        mods.push((name, polyio::normalize_hash(&polyio::sha1_bytes(&bytes))));
+        mods.push((name, aetherio::normalize_hash(&aetherio::sha1_bytes(&bytes))));
     }
     Ok(mods)
 }

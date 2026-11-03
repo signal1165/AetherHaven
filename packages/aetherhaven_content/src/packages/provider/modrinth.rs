@@ -492,7 +492,7 @@ async fn latest_version_files(
 
     Ok(fetched
         .into_iter()
-        .map(|(hash, version)| (polyio::normalize_hash(&hash), version.into()))
+        .map(|(hash, version)| (aetherio::normalize_hash(&hash), version.into()))
         .collect())
 }
 

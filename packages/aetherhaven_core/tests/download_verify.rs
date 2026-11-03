@@ -1,8 +1,8 @@
 use aetherhaven_core::dev;
 use aetherhaven_core::game::download_to_path;
 use aetherhaven_events::{GroupedProgressSession, TaskCategory};
-use polyio::testing::ScratchDir as Scratch;
-use polyio::{sha1_bytes, sha1_file};
+use aetherio::testing::ScratchDir as Scratch;
+use aetherio::{sha1_bytes, sha1_file};
 
 /// Minecraft asset objects are content-addressed and immutable so this
 /// URL/hash pair stays valid

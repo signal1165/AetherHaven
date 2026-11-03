@@ -11,12 +11,12 @@ use aetherhaven_cluster::GameSettingsProfile;
 pub async fn load_settings(notify: Option<&EventBus>) -> LauncherSettings {
     match async {
         let path = paths::settings_file()?;
-        let exists = polyio::try_exists(&path).await?;
+        let exists = aetherio::try_exists(&path).await?;
 
         Ok::<LauncherSettings, LauncherError>(if !exists {
             LauncherSettings::default()
         } else {
-            let data = polyio::read(&path).await?;
+            let data = aetherio::read(&path).await?;
             let mut settings: LauncherSettings = serde_json::from_slice(&data)?;
             settings.migrate();
             settings
@@ -48,7 +48,7 @@ async fn recover_after_failed_load() -> LauncherSettings {
         return settings;
     };
 
-    let Ok(data) = polyio::read(&path).await else {
+    let Ok(data) = aetherio::read(&path).await else {
         return settings;
     };
 
@@ -70,7 +70,7 @@ async fn recover_after_failed_load() -> LauncherSettings {
                 return settings;
             };
 
-            match polyio::rename(&path, &aside).await {
+            match aetherio::rename(&path, &aside).await {
                 Ok(()) => {
                     tracing::warn!(path = %aside.display(), "kept the damaged settings file")
                 }
@@ -97,7 +97,7 @@ pub async fn save_settings(settings: &LauncherSettings) -> LauncherResult<()> {
     let path = paths::settings_file()?;
 
     let data = serde_json::to_string_pretty(settings)?;
-    polyio::write_atomic(path, data).await?;
+    aetherio::write_atomic(path, data).await?;
     Ok(())
 }
 

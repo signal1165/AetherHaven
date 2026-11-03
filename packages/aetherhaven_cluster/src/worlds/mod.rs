@@ -214,7 +214,7 @@ pub async fn add_world_datapacks(
     files: &[PathBuf],
 ) -> ClusterResult<()> {
     let dir = world_dir(cluster, world)?.join(DATAPACKS_DIR);
-    polyio::create_dir_all(&dir).await?;
+    aetherio::create_dir_all(&dir).await?;
 
     for file in files {
         let Some(name) = file.file_name() else {
@@ -225,9 +225,9 @@ pub async fn add_world_datapacks(
             continue;
         }
         if file.is_dir() {
-            polyio::copy_dir(file, &target, &[]).await?;
+            aetherio::copy_dir(file, &target, &[]).await?;
         } else {
-            polyio::copy(file, &target).await?;
+            aetherio::copy(file, &target).await?;
         }
     }
 
@@ -243,7 +243,7 @@ pub fn delete_world_datapack(cluster: &Cluster, world: &str, file_name: &str) ->
 }
 
 fn is_same_file(a: &Path, b: &Path) -> bool {
-    match (polyio::canonicalize(a), polyio::canonicalize(b)) {
+    match (aetherio::canonicalize(a), aetherio::canonicalize(b)) {
         (Ok(a), Ok(b)) => a == b,
         _ => false,
     }
@@ -251,7 +251,7 @@ fn is_same_file(a: &Path, b: &Path) -> bool {
 
 async fn zip_meta(path: &Path) -> (Option<String>, Option<PackIcon>) {
     let Ok(entries) =
-        polyio::read_zip_file_entries(path, |name| name == PACK_META || name == PACK_ICON).await
+        aetherio::read_zip_file_entries(path, |name| name == PACK_META || name == PACK_ICON).await
     else {
         return (None, None);
     };
@@ -273,14 +273,14 @@ async fn store_icon(bytes: &[u8]) -> Option<PackIcon> {
         return None;
     }
 
-    let mut hash = polyio::Sha1Stream::new();
+    let mut hash = aetherio::Sha1Stream::new();
     hash.update(bytes);
     let dir = aetherhaven_common::paths::local_icons_dir().ok()?;
     let name = format!("{}.png", hash.finish());
     let target = dir.join(&name);
     if !target.is_file() {
-        polyio::create_dir_all(&dir).await.ok()?;
-        polyio::write(&target, bytes).await.ok()?;
+        aetherio::create_dir_all(&dir).await.ok()?;
+        aetherio::write(&target, bytes).await.ok()?;
     }
     Some(PackIcon::Cached(format!(
         "{}{name}",

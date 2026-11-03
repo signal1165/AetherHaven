@@ -866,12 +866,12 @@ async fn save_imported(cluster: &Cluster, entry: &ImportedModpack) -> LauncherRe
 async fn write_imported(cluster: &Cluster, packs: &[ImportedModpack]) -> LauncherResult<()> {
     let path = imported_file(cluster)?;
     if packs.is_empty() {
-        if polyio::try_exists(&path).await.unwrap_or(false) {
-            polyio::remove_file(&path).await?;
+        if aetherio::try_exists(&path).await.unwrap_or(false) {
+            aetherio::remove_file(&path).await?;
         }
         return Ok(());
     }
-    polyio::write_atomic(&path, serde_json::to_vec_pretty(packs)?).await?;
+    aetherio::write_atomic(&path, serde_json::to_vec_pretty(packs)?).await?;
     Ok(())
 }
 

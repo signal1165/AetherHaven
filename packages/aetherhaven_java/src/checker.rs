@@ -116,13 +116,13 @@ fn probe_flag(info: &HashMap<String, String>, key: &str) -> bool {
 static TEMP_JAVA_INFO: OnceCell<TempDir> = OnceCell::const_new();
 
 #[tracing::instrument(level = "debug")]
-async fn get_java_info_dir() -> Result<&'static PathBuf, polyio::IOError> {
-    let dir: Result<&TempDir, polyio::IOError> = TEMP_JAVA_INFO
+async fn get_java_info_dir() -> Result<&'static PathBuf, aetherio::IOError> {
+    let dir: Result<&TempDir, aetherio::IOError> = TEMP_JAVA_INFO
         .get_or_try_init(async || {
-            let dir = polyio::tempdir().await?;
+            let dir = aetherio::tempdir().await?;
             let file = dir.dir_path().join("JavaInfo.class");
 
-            polyio::write(&file, JAVA_INFO_CLASS).await?;
+            aetherio::write(&file, JAVA_INFO_CLASS).await?;
 
             Ok(dir)
         })

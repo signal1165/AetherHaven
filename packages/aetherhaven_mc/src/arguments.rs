@@ -48,7 +48,7 @@ pub fn java_arguments(
     {
         parsed.push(format!(
             "-Djava.library.path={}",
-            polyio::canonicalize(natives_path)
+            aetherio::canonicalize(natives_path)
                 .map_err(|_| McError::LibraryPath(natives_path.display().to_string()))?
                 .display()
         ));
@@ -337,13 +337,13 @@ fn expand_data_placeholders<S: std::hash::BuildHasher>(
 #[tracing::instrument(skip_all, level = "debug")]
 pub async fn main_class(path: impl AsRef<std::path::Path>) -> McResult<Option<String>> {
     let file = tokio::fs::File::open(path.as_ref()).await?;
-    let manifest = match polyio::try_read_zip_entry_bytes(
+    let manifest = match aetherio::try_read_zip_entry_bytes(
         tokio::io::BufReader::new(file),
         "META-INF/MANIFEST.MF",
     )
     .await
     {
-        Err(polyio::IOError::FileNotFoundInZip { .. }) => return Ok(None),
+        Err(aetherio::IOError::FileNotFoundInZip { .. }) => return Ok(None),
         result => result?,
     };
 
@@ -385,11 +385,11 @@ pub fn parse_minecraft_argument(
         .replace("${assets_index_name}", asset_index)
         .replace(
             "${game_directory}",
-            &polyio::canonicalize(game_directory)?.display().to_string(),
+            &aetherio::canonicalize(game_directory)?.display().to_string(),
         )
         .replace(
             "${assets_root}",
-            &polyio::canonicalize(assets_directory)?
+            &aetherio::canonicalize(assets_directory)?
                 .display()
                 .to_string(),
         )
@@ -402,7 +402,7 @@ pub fn parse_minecraft_argument(
 fn legacy_assets_path() -> McResult<String> {
     let dir = paths::legacy_assets_dir()?;
 
-    Ok(polyio::canonicalize(&dir)
+    Ok(aetherio::canonicalize(&dir)
         .unwrap_or(dir)
         .display()
         .to_string())
@@ -419,11 +419,11 @@ fn parse_java_argument(
     Ok(argument
         .replace(
             "${natives_directory}",
-            &polyio::canonicalize(natives_path)?.display().to_string(),
+            &aetherio::canonicalize(natives_path)?.display().to_string(),
         )
         .replace(
             "${library_directory}",
-            &polyio::canonicalize(libraries_path)?.display().to_string(),
+            &aetherio::canonicalize(libraries_path)?.display().to_string(),
         )
         .replace("${classpath_separator}", constants::CLASSPATH_SEPARATOR)
         .replace("${launcher_name}", "AetherHaven")
@@ -478,7 +478,7 @@ pub fn classpaths(
         .map(|(_, name)| get_library(libraries_path, name, false))
         .collect::<Result<HashSet<_>, _>>()?;
 
-    classpaths.insert(polyio::canonicalize(client_path)?.display().to_string());
+    classpaths.insert(aetherio::canonicalize(client_path)?.display().to_string());
 
     tracing::debug!(entries = classpaths.len(), "classpath resolved");
 
@@ -552,7 +552,7 @@ pub fn get_library(libraries_path: &Path, library: &str, allow_missing: bool) ->
         });
     }
 
-    Ok(polyio::canonicalize(&path)?.display().to_string())
+    Ok(aetherio::canonicalize(&path)?.display().to_string())
 }
 
 fn parse_arguments<ParseFn>(

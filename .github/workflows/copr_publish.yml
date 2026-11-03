@@ -57,4 +57,4 @@ jobs:
           mkdir -p ~/.config
           printf '%s' "$COPR_CONFIG_CONTENT" > ~/.config/copr
           chmod 600 ~/.config/copr
-          copr-cli build polyfrost/AetherHaven ~/rpmbuild/SRPMS/aetherhaven-bin-*.src.rpm
+          copr-cli build aetherhaven/AetherHaven ~/rpmbuild/SRPMS/aetherhaven-bin-*.src.rpm

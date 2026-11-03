@@ -65,7 +65,7 @@ async fn sweep_shared(
 ) {
     for content_type in swept {
         let dir = cluster_root.join(content_type.folder_name());
-        let Ok(mut entries) = polyio::read_dir(&dir).await else {
+        let Ok(mut entries) = aetherio::read_dir(&dir).await else {
             continue;
         };
 
@@ -77,7 +77,7 @@ async fn sweep_shared(
 
             // A symlink here is unambiguously ours nothing else writes links here
             if file_type.is_symlink() {
-                polyio::remove_file(&path).await.ok();
+                aetherio::remove_file(&path).await.ok();
                 report.removed += 1;
                 continue;
             }
@@ -88,7 +88,7 @@ async fn sweep_shared(
 
             match cached_artifact_for(state, &path).await {
                 Some(CacheMatch::Elsewhere) => {
-                    if polyio::remove_file(&path).await.is_ok() {
+                    if aetherio::remove_file(&path).await.is_ok() {
                         report.removed += 1;
                     }
                 }
@@ -145,7 +145,7 @@ async fn adopt_dedicated(
 
         let relative =
             manifest::entry_path(link.content_type.folder_name(), &link.cluster_file_name);
-        if polyio::symlink_metadata(cluster_root.join(&relative))
+        if aetherio::symlink_metadata(cluster_root.join(&relative))
             .await
             .is_err()
         {
@@ -175,9 +175,9 @@ enum CacheMatch {
 }
 
 async fn cached_artifact_for(state: &LauncherState, path: &Path) -> Option<CacheMatch> {
-    let hash = polyio::sha1_file(path).await.ok()?;
+    let hash = aetherio::sha1_file(path).await.ok()?;
     let row =
-        artifact_dao::get_artifact_by_hash(&state.services.db, &polyio::normalize_hash(&hash))
+        artifact_dao::get_artifact_by_hash(&state.services.db, &aetherio::normalize_hash(&hash))
             .await
             .ok()
             .flatten()?;
@@ -191,7 +191,7 @@ async fn cached_artifact_for(state: &LauncherState, path: &Path) -> Option<Cache
 }
 
 fn same_file(a: &Path, b: &Path) -> bool {
-    match (polyio::canonicalize(a), polyio::canonicalize(b)) {
+    match (aetherio::canonicalize(a), aetherio::canonicalize(b)) {
         (Ok(a), Ok(b)) => a == b,
         _ => a == b,
     }

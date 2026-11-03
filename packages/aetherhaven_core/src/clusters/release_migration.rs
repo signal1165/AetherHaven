@@ -233,7 +233,7 @@ pub async fn copy_configs(
     }
     let from = source.game_dir()?.join("config");
     let to = target.game_dir()?.join("config");
-    if from == to || !polyio::try_exists(&from).await? {
+    if from == to || !aetherio::try_exists(&from).await? {
         return Ok(0);
     }
     let bundled = bundle_override_paths(
@@ -255,8 +255,8 @@ async fn copy_missing(
     let mut copied = 0;
     let mut stack = vec![(from.to_path_buf(), to.to_path_buf(), rel.to_string())];
     while let Some((src, dst, rel)) = stack.pop() {
-        polyio::create_dir_all(&dst).await?;
-        let mut entries = polyio::read_dir(&src).await?;
+        aetherio::create_dir_all(&dst).await?;
+        let mut entries = aetherio::read_dir(&src).await?;
         while let Some(entry) = entries.next_entry().await? {
             let name = entry.file_name();
             let child = dst.join(&name);
@@ -266,9 +266,9 @@ async fn copy_missing(
                 stack.push((entry.path(), child, child_rel));
             } else if file_type.is_file()
                 && !skip.contains(&child_rel)
-                && !polyio::try_exists(&child).await?
+                && !aetherio::try_exists(&child).await?
             {
-                polyio::copy(entry.path(), &child).await?;
+                aetherio::copy(entry.path(), &child).await?;
                 copied += 1;
             }
         }
@@ -282,31 +282,31 @@ mod tests {
 
     #[tokio::test]
     async fn copy_missing_keeps_existing_and_bundled_files() {
-        let src = polyio::tempdir().await.expect("src dir");
-        let dst = polyio::tempdir().await.expect("dst dir");
+        let src = aetherio::tempdir().await.expect("src dir");
+        let dst = aetherio::tempdir().await.expect("dst dir");
         let (src, dst) = (src.dir_path(), dst.dir_path());
 
-        polyio::create_dir_all(src.join("sub")).await.unwrap();
-        polyio::write(src.join("a.json"), b"old").await.unwrap();
-        polyio::write(src.join("sub/b.json"), b"b").await.unwrap();
-        polyio::write(src.join("sub/bundled.json"), b"bundled")
+        aetherio::create_dir_all(src.join("sub")).await.unwrap();
+        aetherio::write(src.join("a.json"), b"old").await.unwrap();
+        aetherio::write(src.join("sub/b.json"), b"b").await.unwrap();
+        aetherio::write(src.join("sub/bundled.json"), b"bundled")
             .await
             .unwrap();
-        polyio::write(dst.join("a.json"), b"keep").await.unwrap();
+        aetherio::write(dst.join("a.json"), b"keep").await.unwrap();
 
         let skip = HashSet::from(["config/sub/bundled.json".to_string()]);
         assert_eq!(copy_missing(src, dst, "config", &skip).await.unwrap(), 1);
         assert!(
-            !polyio::try_exists(dst.join("sub/bundled.json"))
+            !aetherio::try_exists(dst.join("sub/bundled.json"))
                 .await
                 .unwrap()
         );
         assert_eq!(
-            polyio::read_to_string(dst.join("a.json")).await.unwrap(),
+            aetherio::read_to_string(dst.join("a.json")).await.unwrap(),
             "keep"
         );
         assert_eq!(
-            polyio::read_to_string(dst.join("sub/b.json"))
+            aetherio::read_to_string(dst.join("sub/b.json"))
                 .await
                 .unwrap(),
             "b"

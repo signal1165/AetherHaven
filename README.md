@@ -2,17 +2,17 @@
 
 <img src=".github/media/RepoBanner.png" alt="Repository Banner" />
 
-# AetherHaven  |  OneLauncher
-The monorepo containing the code for OneLauncher, AetherHaven, and their core backend.
+# AetherHaven  |  AetherHaven Launcher
+The monorepo containing the code for AetherHaven Launcher, AetherHaven, and their core backend.
 
 AetherHaven is a Minecraft client featuring fully 100% open-source components, offering many packaged and pre-configured mods in one click.
-OneLauncher is a WIP Minecraft launcher giving power-users the greatest customization whilst featuring a clean UI.
+AetherHaven Launcher is a WIP Minecraft launcher giving power-users the greatest customization whilst featuring a clean UI.
 
 </div>
 
 ## Installing
 
-You can install the latest release of AetherHaven from our website: [https://polyfrost.org/projects/aetherhaven](https://polyfrost.org/projects/aetherhaven)
+You can install the latest release of AetherHaven from our website: [https://github.com/signal1165/AetherHaven](https://github.com/signal1165/AetherHaven)
 as well as our [GitHub releases](https://github.com/signal1165/AetherHaven/releases/latest).
 
 | Windows (x86_64) | macOS (Intel & Apple Silicon) | Linux (x86_64)                                          |

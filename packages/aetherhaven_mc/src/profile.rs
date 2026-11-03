@@ -485,7 +485,7 @@ pub async fn store_profile_view(uuid: &str, profile: MojangFullPlayerProfile) ->
 }
 
 fn profile_cache_path(uuid: &str) -> Option<std::path::PathBuf> {
-    let key = polyio::sha1_bytes(normalize_uuid(uuid).as_bytes());
+    let key = aetherio::sha1_bytes(normalize_uuid(uuid).as_bytes());
     Some(
         aetherhaven_common::paths::profiles_cache_dir()
             .ok()?
@@ -505,16 +505,16 @@ async fn write_cached_profile(uuid: &str, view: &PlayerProfileView) {
         return;
     };
     if let Some(parent) = path.parent() {
-        let _ = polyio::create_dir_all(parent).await;
+        let _ = aetherio::create_dir_all(parent).await;
     }
-    if let Err(err) = polyio::write(&path, &bytes).await {
+    if let Err(err) = aetherio::write(&path, &bytes).await {
         tracing::warn!("failed to cache player profile for {uuid}: {err}");
     }
 }
 
 async fn read_cached_profile(uuid: &str) -> Option<CachedProfile> {
     let path = profile_cache_path(uuid)?;
-    let bytes = polyio::read(&path).await.ok()?;
+    let bytes = aetherio::read(&path).await.ok()?;
 
     if let Ok(entry) = serde_json::from_slice::<CachedProfile>(&bytes) {
         return Some(entry);
@@ -586,10 +586,10 @@ mod tests {
         let view = sample_view("Legacy");
 
         let path = profile_cache_path(&uuid).unwrap();
-        polyio::create_dir_all(path.parent().unwrap())
+        aetherio::create_dir_all(path.parent().unwrap())
             .await
             .unwrap();
-        polyio::write(&path, &serde_json::to_vec(&view).unwrap())
+        aetherio::write(&path, &serde_json::to_vec(&view).unwrap())
             .await
             .unwrap();
 

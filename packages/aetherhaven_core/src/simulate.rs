@@ -210,7 +210,7 @@ pub async fn damage_libraries(count: usize, damage: Damage) -> LauncherResult<Si
 pub async fn delete_assets_tree() -> LauncherResult<SimulationReport> {
     let dir = paths::assets_dir()?;
 
-    let existed = polyio::try_exists(&dir).await.unwrap_or(false);
+    let existed = aetherio::try_exists(&dir).await.unwrap_or(false);
     if existed {
         tokio::fs::remove_dir_all(&dir)
             .await

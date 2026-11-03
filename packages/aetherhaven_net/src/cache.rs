@@ -49,7 +49,7 @@ fn etag_path(cache_path: &Path) -> PathBuf {
 }
 
 async fn read_sidecar_etag(cache_path: &Path) -> Option<String> {
-    polyio::read(etag_path(cache_path))
+    aetherio::read(etag_path(cache_path))
         .await
         .ok()
         .and_then(|bytes| String::from_utf8(bytes).ok())
@@ -59,7 +59,7 @@ async fn read_sidecar_etag(cache_path: &Path) -> Option<String> {
 /// Callers using [`EtagPolicy::Defer`] call this once the work depending on the
 /// body has succeeded
 pub async fn commit_etag(cache_path: &Path, etag: &str) {
-    if let Err(err) = polyio::write_atomic(etag_path(cache_path), etag.as_bytes()).await {
+    if let Err(err) = aetherio::write_atomic(etag_path(cache_path), etag.as_bytes()).await {
         tracing::warn!("failed to write etag sidecar: {err}");
     }
 }
@@ -83,7 +83,7 @@ pub async fn fetch_cached(
     }
 
     let cached = || async {
-        match polyio::read(cache_path).await {
+        match aetherio::read(cache_path).await {
             Ok(bytes) => Ok(Some(Fetched {
                 bytes,
                 changed: false,
@@ -109,7 +109,7 @@ pub async fn fetch_cached(
                 .map(str::to_string);
 
             let bytes = res.bytes().await?.to_vec();
-            polyio::write_atomic(cache_path, &bytes).await?;
+            aetherio::write_atomic(cache_path, &bytes).await?;
 
             let etag = match (&server_etag, policy) {
                 (Some(etag), EtagPolicy::CommitNow) => {

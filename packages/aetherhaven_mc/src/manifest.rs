@@ -96,11 +96,11 @@ impl MetadataStore {
         let path = paths::caches_dir()?.join("metadata.json");
         let mut metadata = Self::default();
 
-        match polyio::read_json::<MetadataInner>(&path).await {
+        match aetherio::read_json::<MetadataInner>(&path).await {
             Ok(inner) => {
                 metadata.inner = inner;
                 if metadata.refetch_errored(ctx).await > 0 {
-                    polyio::write_json_atomic(&path, &metadata.inner).await?;
+                    aetherio::write_json_atomic(&path, &metadata.inner).await?;
                 }
 
                 let (tx, rx) = oneshot::channel();
@@ -123,7 +123,7 @@ impl MetadataStore {
                         }
                     };
                     saved.merge(fresh.clone());
-                    if let Err(err) = polyio::write_json_atomic(&path, &saved).await {
+                    if let Err(err) = aetherio::write_json_atomic(&path, &saved).await {
                         tracing::warn!("failed to save refreshed metadata manifest: {err}");
                     }
                     let _ = tx.send(fresh);
@@ -137,7 +137,7 @@ impl MetadataStore {
                     );
                 }
                 metadata.inner.fetch_all(ctx).await;
-                polyio::write_json_atomic(&path, &metadata.inner).await?;
+                aetherio::write_json_atomic(&path, &metadata.inner).await?;
             }
         }
 
