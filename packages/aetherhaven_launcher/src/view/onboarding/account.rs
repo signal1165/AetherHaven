@@ -2,7 +2,7 @@ use freya::prelude::*;
 use freya::query::{MutationStateData, UseMutation};
 use aetherhaven_auth::MinecraftAccount;
 
-use crate::components::{AssetImage, Avatar, Button, Icon, TextInput};
+use crate::components::{AssetImage, Avatar, Button, Icon, IconType, TextInput};
 use crate::hooks::{
     try_default_account, use_add_offline_account, use_current_account, AddOfflineAccountKeys,
 };
@@ -19,7 +19,7 @@ impl Component for OnboardingAccount {
     fn render(&self) -> impl IntoElement {
         let account_query = use_current_account();
         let add_offline = use_add_offline_account();
-        let mut username = use_state(|| String::from("Player"));
+        let username = use_state(|| String::from("Player"));
         let mut submitting = use_state(|| false);
 
         let account = try_default_account(&account_query);
