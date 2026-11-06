@@ -42,6 +42,15 @@ const FPS_WARNING_RUNS: &[(&str, bool, bool)] = &[
     (" UNLESS YOU PLAY HYPIXEL SKYBLOCK.", false, true),
 ];
 
+const AETHERHAVEN_MOD_CATALOG: &[(&str, &str, &str)] = &[
+    ("AetherHaven Performance", "AetherHaven", "Client-side performance and quality-of-life features."),
+    ("Sodium", "CaffeineMC", "Modern rendering optimizations for higher FPS."),
+    ("Lithium", "CaffeineMC", "Gameplay and server-tick optimizations."),
+    ("FerriteCore", "malte0811", "Reduces memory usage on supported Minecraft versions."),
+    ("ImmediatelyFast", "RaphiMC", "Speeds up immediate-mode rendering and UI drawing."),
+    ("Entity Culling", "tr7zw", "Skips rendering entities hidden behind blocks."),
+];
+
 fn fps_warning_banner() -> impl IntoElement {
     let mut text = paragraph();
     for (run, bold, underlined) in FPS_WARNING_RUNS {
@@ -65,6 +74,46 @@ fn fps_warning_banner() -> impl IntoElement {
         .border(border_all_color(1., colors::code_warn()))
         .padding(Gaps::new_all(8.))
         .child(text)
+}
+
+fn aetherhaven_catalog_section() -> Element {
+    let cards = AETHERHAVEN_MOD_CATALOG
+        .iter()
+        .map(|(name, author, description)| {
+            OnboardingModCard {
+                provider: ProviderId::Modrinth,
+                github_hosted: false,
+                name: (*name).to_string(),
+                author: (*author).to_string(),
+                description: (*description).to_string(),
+                icon_url: None,
+                size: 0,
+                enabled: false,
+                on_toggle: EventHandler::new(|()| {}),
+            }
+            .into_element()
+        })
+        .collect::<Vec<_>>();
+
+    rect()
+        .vertical()
+        .width(Size::fill())
+        .spacing(10.)
+        .child(
+            label()
+                .text("AetherHaven recommended mods")
+                .font_size(15.)
+                .font_weight(FontWeight::SEMI_BOLD)
+                .color(colors::fg_primary()),
+        )
+        .child(
+            label()
+                .text("Performance and utility mods selected for the AetherHaven experience.")
+                .font_size(12.)
+                .color(colors::fg_secondary()),
+        )
+        .child(fixed_grid(cards, MOD_GRID_COLS, CARD_GRID_H, GRID_GAP))
+        .into_element()
 }
 
 #[derive(Clone)]
@@ -270,6 +319,10 @@ impl Component for OnboardingBundles {
             ));
         }
 
+        if extras.is_empty() {
+            sections.push(aetherhaven_catalog_section());
+        }
+
         let nothing_to_ask = opt_ins.is_empty() && extras.is_empty();
 
         rect()
@@ -306,7 +359,9 @@ impl Component for OnboardingBundles {
                                     .spacing(20.)
                                     .children(sections),
                             )
-                            .maybe_child(nothing_to_ask.then(|| empty_hint(&catalog_msg))),
+                            .maybe_child(nothing_to_ask.then(|| {
+                                empty_hint(&format!("{}\n\nAetherHaven's local catalog is shown above.", catalog_msg))
+                            })),
                     ),
             ))
             .child(onboarding_nav(
