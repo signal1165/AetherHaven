@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use crate::{LauncherError, LauncherResult};
+use crate::LauncherResult;
 use aetherhaven_common::constants;
 use aetherhaven_common::paths;
 use aetherhaven_net::RequestClient;
@@ -53,13 +53,81 @@ pub async fn fetch_terms(net: &RequestClient) -> LauncherResult<TermsDocument> {
     let url = format!("{}/aetherhaven/tos.json", net.config().meta_url_base);
     let cache_path = paths::caches_dir()?.join("TERMS.json");
 
-    let fetched = fetch_cached(net, &url, &cache_path, EtagPolicy::CommitNow)
-        .await?
-        .ok_or_else(|| LauncherError::InvalidSettingsProfile {
-            reason: "terms are unavailable and not cached".to_string(),
-        })?;
+    if let Ok(Some(fetched)) = fetch_cached(net, &url, &cache_path, EtagPolicy::CommitNow).await {
+        if let Ok(document) = fetched.json() {
+            return Ok(document);
+        }
+    }
 
-    Ok(fetched.json()?)
+    Ok(local_terms_document())
+}
+
+fn local_terms_document() -> TermsDocument {
+    TermsDocument {
+        version: 1,
+        privacy_version: Some(1),
+        updated_at: Some("2026-11-06".to_string()),
+        terms: r#"# AetherHaven Terms of Service
+
+**Last updated: 6 November 2026**
+
+AetherHaven is an independent, open-source Minecraft launcher. By selecting **Accept**, you agree to use the launcher responsibly and to follow the rules of the servers you join.
+
+## Open-source software
+
+AetherHaven is distributed under the license included with the project. Third-party libraries, Minecraft loaders, and mods remain subject to their own licenses and attribution requirements.
+
+## Accounts and offline mode
+
+AetherHaven supports local offline profiles for single-player and servers that permit offline-mode players. An offline profile does not prove ownership of Minecraft and cannot be used to access servers that require official authentication.
+
+Official Minecraft authentication is optional in the launcher. If you use it, authentication is handled by Microsoft and the Minecraft services; AetherHaven does not ask for or store your Microsoft password.
+
+## Content and downloads
+
+Mods and other content may be downloaded from their respective public providers, including Modrinth. Each item remains the property of its authors and is subject to its own license. AetherHaven does not guarantee that third-party content will always be available or compatible with every game version.
+
+## Disclaimer
+
+AetherHaven is provided on an “as is” basis. You are responsible for backups of worlds, settings, and downloaded content. AetherHaven is not an official Minecraft product and is not approved by or associated with Mojang or Microsoft.
+
+## Contact
+
+Project discussions and issue reports are available at the AetherHaven GitHub repository."#
+            .to_string(),
+        privacy: Some(
+            r#"# AetherHaven Privacy Policy
+
+**Last updated: 6 November 2026**
+
+## Data stored locally
+
+AetherHaven stores launcher settings, local profiles, selected versions, logs, and downloaded content on your computer so the launcher can work between sessions. Offline profile data stays local to the launcher.
+
+## Microsoft sign-in
+
+Microsoft sign-in is optional. When you choose it, the authentication flow is opened through Microsoft’s services. AetherHaven stores the tokens needed to keep your authorized session, but does not store your Microsoft password.
+
+## Network requests
+
+The launcher may contact Minecraft services, Modrinth, CurseForge, GitHub, and Java distribution providers to download game files, loaders, mods, updates, or project information. Optional service integrations are disabled unless explicitly enabled by the user.
+
+## Diagnostics
+
+Crash and diagnostic reporting is limited to what is enabled in the launcher settings. You can disable optional diagnostics before accepting this policy or later in Settings.
+
+## Changes
+
+If this policy changes, AetherHaven will show the updated version during startup and ask you to review it again.
+
+## Contact
+
+For privacy questions, open an issue or discussion in the AetherHaven GitHub repository."#
+                .to_string(),
+        ),
+        terms_url: Some(constants::TOS_URL.to_string()),
+        privacy_url: Some(constants::PRIVACY_URL.to_string()),
+    }
 }
 
 #[cfg(test)]

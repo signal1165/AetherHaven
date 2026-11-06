@@ -14,8 +14,8 @@ pub const MCLOGS_API_URL: &str = "https://api.mclo.gs/1";
 pub const SKYCLIENT_BASE_URL: &str =
     "https://raw.githubusercontent.com/SkyblockClient/SkyblockClient-REPO/refs/heads/main/v1";
 pub const META_URL_BASE: &str = "https://services.aetherhaven.invalid/content";
-pub const TOS_URL: &str = "https://github.com/signal1165/AetherHaven/blob/aetherhaven-complete/TERMS.md";
-pub const PRIVACY_URL: &str = "https://github.com/signal1165/AetherHaven/blob/aetherhaven-complete/PRIVACY.md";
+pub const TOS_URL: &str = "https://github.com/signal1165/AetherHaven/blob/main/TERMS.md";
+pub const PRIVACY_URL: &str = "https://github.com/signal1165/AetherHaven/blob/main/PRIVACY.md";
 pub const PLUS_BACKEND_URL: &str = "https://services.aetherhaven.invalid/account";
 pub const CRASH_DATA_URL: &str =
     "https://services.aetherhaven.invalid/crashes.json";
