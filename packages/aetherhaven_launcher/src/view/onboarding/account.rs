@@ -2,14 +2,14 @@ use freya::prelude::*;
 use freya::query::{MutationStateData, UseMutation};
 use aetherhaven_auth::MinecraftAccount;
 
-use crate::components::{Avatar, Button, Icon, IconType, TextInput};
+use crate::components::{AssetImage, Avatar, Button, Icon, TextInput};
 use crate::hooks::{
     try_default_account, use_add_offline_account, use_current_account, AddOfflineAccountKeys,
 };
 use crate::routes::Route;
 use crate::theme::colors;
 use crate::view::onboarding::{
-    onboarding_illustration, onboarding_nav, onboarding_page, step_heading,
+    onboarding_nav, onboarding_page, step_heading,
 };
 
 #[derive(PartialEq)]
@@ -69,7 +69,7 @@ impl Component for OnboardingAccount {
             .into_element();
 
         let page = onboarding_page(
-            onboarding_illustration(IconType::OnboardingAccount),
+            AssetImage::new("aether_logo_HD.png", 240.),
             content,
             onboarding_nav(
                 Some(Route::OnboardingLanguage {}),
