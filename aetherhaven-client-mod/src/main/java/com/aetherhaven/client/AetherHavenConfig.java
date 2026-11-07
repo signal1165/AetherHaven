@@ -17,6 +17,12 @@ public final class AetherHavenConfig {
     public boolean keystrokesHud = false;
     public boolean performanceMode = true;
     public boolean menuBlur = true;
+    public boolean sprintToggle = false;
+    public boolean privacyMode = false;
+    public boolean particleLimiter = true;
+    public boolean weatherControl = false;
+    public boolean timeControl = false;
+    public int particleBudget = 160;
 
     public static AetherHavenConfig load() {
         try {
@@ -24,7 +30,8 @@ public final class AetherHavenConfig {
                 AetherHavenConfig config = GSON.fromJson(Files.readString(PATH), AetherHavenConfig.class);
                 return config == null ? new AetherHavenConfig() : config;
             }
-        } catch (IOException ignored) {
+        } catch (IOException | RuntimeException ignored) {
+            // A broken config must never prevent Minecraft from starting.
         }
         return new AetherHavenConfig();
     }
@@ -34,6 +41,7 @@ public final class AetherHavenConfig {
             Files.createDirectories(PATH.getParent());
             Files.writeString(PATH, GSON.toJson(this));
         } catch (IOException ignored) {
+            // Configuration is best-effort and must not affect gameplay.
         }
     }
 }
