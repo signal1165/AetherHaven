@@ -3,6 +3,7 @@ pub(crate) mod install;
 mod manager;
 mod manifest;
 mod optional;
+mod recommended;
 pub(crate) mod overrides;
 pub(crate) mod polymrpack;
 mod types;
@@ -20,6 +21,7 @@ pub use install::{
     set_bundle_package_overrides, taken_bundle_names, wanted_bundle_files,
 };
 pub use manager::{Bundle, BundlesManager};
+pub use recommended::install_recommended_profile;
 pub use manifest::BundleManifest as RemoteBundleManifest;
 pub use optional::{
     PendingOptionalMod, pending_optional_mods, resolve_optional_mods, skip_optional_mods,

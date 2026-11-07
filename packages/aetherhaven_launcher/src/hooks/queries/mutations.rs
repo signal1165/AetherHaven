@@ -484,6 +484,26 @@ impl MutationCapability for ClusterMutation {
                             {
                                 tracing::warn!(cluster_id = cluster.id, error = %err, "failed to install bundle content for the new instance");
                             }
+                            if cluster.tags.iter().any(|tag| tag == "AetherHaven")
+                                && cluster.tags.iter().any(|tag| tag == "Default")
+                            {
+                                match aetherhaven_content::bundles::install_recommended_profile(
+                                    cluster.id, content,
+                                )
+                                .await
+                                {
+                                    Ok(installed) => tracing::info!(
+                                        cluster_id = cluster.id,
+                                        mods = installed.len(),
+                                        "installed AetherHaven recommended profile"
+                                    ),
+                                    Err(err) => tracing::warn!(
+                                        cluster_id = cluster.id,
+                                        error = %err,
+                                        "failed to install AetherHaven recommended profile"
+                                    ),
+                                }
+                            }
                             if let Err(err) = aetherhaven_core::apply_bundle_java_override(
                                 &state,
                                 cluster.id,

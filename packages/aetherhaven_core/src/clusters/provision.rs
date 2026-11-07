@@ -155,12 +155,28 @@ pub async fn ensure_from_versions(state: &LauncherState) -> LauncherResult<Vec<C
 pub async fn ensure_from_default_profiles(state: &LauncherState) -> LauncherResult<Vec<Cluster>> {
     let mut created = Vec::new();
     let global = state.settings.read().global_game_settings.clone();
+    let content = state.services.content();
 
     for &(mc_version, loader, description) in &DEFAULT_PROFILES {
-        if cluster_dao::find_by_version_loader(&state.services.db, mc_version, loader as i64)
-            .await?
-            .is_some()
+        if let Some(existing) = cluster_dao::find_by_version_loader(
+            &state.services.db,
+            mc_version,
+            loader as i64,
+        )
+        .await?
         {
+            if let Err(err) = aetherhaven_content::bundles::install_recommended_profile(
+                existing.id,
+                &content,
+            )
+            .await
+            {
+                tracing::warn!(
+                    cluster_id = existing.id,
+                    error = %err,
+                    "failed to refresh default AetherHaven optimization profile"
+                );
+            }
             continue;
         }
 
@@ -176,6 +192,18 @@ pub async fn ensure_from_default_profiles(state: &LauncherState) -> LauncherResu
             .await
         {
             Ok(Some(cluster)) => {
+                if let Err(err) = aetherhaven_content::bundles::install_recommended_profile(
+                    cluster.id,
+                    &content,
+                )
+                .await
+                {
+                    tracing::warn!(
+                        cluster_id = cluster.id,
+                        error = %err,
+                        "failed to install default AetherHaven optimization profile"
+                    );
+                }
                 tracing::info!(
                     cluster_id = cluster.id,
                     mc_version = %cluster.mc_version,
