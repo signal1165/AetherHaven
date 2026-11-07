@@ -2,7 +2,9 @@ use freya::prelude::*;
 use freya::query::{MutationStateData, UseMutation};
 use aetherhaven_auth::MinecraftAccount;
 
-use crate::components::{AssetImage, Avatar, Button, Icon, IconType, TextInput};
+use crate::components::{
+    AssetImage, Avatar, Button, Icon, IconType, TextInput, use_microsoft_login,
+};
 use crate::hooks::{
     try_default_account, use_add_offline_account, use_current_account, AddOfflineAccountKeys,
 };
@@ -19,6 +21,7 @@ impl Component for OnboardingAccount {
     fn render(&self) -> impl IntoElement {
         let account_query = use_current_account();
         let add_offline = use_add_offline_account();
+        let microsoft = use_microsoft_login();
         let username = use_state(|| String::from("Player"));
         let mut submitting = use_state(|| false);
 
@@ -48,14 +51,59 @@ impl Component for OnboardingAccount {
             }
         });
 
+        let microsoft_login = Button::new()
+            .primary()
+            .large()
+            .enabled(!microsoft.pending)
+            .on_press({
+                let microsoft = microsoft.clone();
+                move |_| microsoft.start()
+            })
+            .child(Icon::new(IconType::Globe01).size(16.))
+            .text(if microsoft.pending {
+                "Signing in..."
+            } else {
+                "Login with Microsoft"
+            });
+
         let content = rect()
             .vertical()
             .width(Size::fill())
             .spacing(24.)
             .child(step_heading(
                 "Player profile",
-                "Choose a local username. No Microsoft login is required for offline mode.",
+                "Use an official Microsoft account or continue with a local offline profile.",
             ))
+            .child(
+                rect()
+                    .vertical()
+                    .width(Size::fill())
+                    .spacing(8.)
+                    .child(
+                        label()
+                            .text("OFFICIAL ACCOUNT")
+                            .font_size(11.)
+                            .font_weight(FontWeight::MEDIUM)
+                            .color(colors::fg_secondary()),
+                    )
+                    .child(
+                        label()
+                            .text("Use Microsoft login for premium and official servers.")
+                            .font_size(12.)
+                            .color(colors::fg_secondary()),
+                    )
+                    .child(microsoft_login)
+                    .maybe_child(microsoft.error.clone().map(|message| {
+                        label().text(message).font_size(12.).color(colors::danger())
+                    })),
+            )
+            .child(
+                label()
+                    .text("OR USE OFFLINE")
+                    .font_size(11.)
+                    .font_weight(FontWeight::MEDIUM)
+                    .color(colors::fg_secondary()),
+            )
             .child(match &account {
                 Some(account) => account_preview(account).into_element(),
                 None => offline_profile_card(
@@ -78,7 +126,11 @@ impl Component for OnboardingAccount {
             ),
         );
 
-        rect().width(Size::fill()).height(Size::fill()).child(page)
+        rect()
+            .width(Size::fill())
+            .height(Size::fill())
+            .child(page)
+            .maybe_child(microsoft.popup())
     }
 }
 
