@@ -155,14 +155,14 @@ fn icon_box(icon: IconType) -> impl IntoElement {
         .into_element()
 }
 
-pub(super) fn empty_hint(text: &str) -> impl IntoElement {
+pub(super) fn empty_hint(text: String) -> impl IntoElement {
     rect()
         .width(Size::fill())
         .padding(Gaps::new_all(24.))
         .center()
         .child(
             label()
-                .text(text.to_string())
+                .text(text)
                 .font_size(13.)
                 .color(colors::fg_secondary()),
         )

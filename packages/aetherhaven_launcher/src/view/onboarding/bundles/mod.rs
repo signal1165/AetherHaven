@@ -360,7 +360,10 @@ impl Component for OnboardingBundles {
                                     .children(sections),
                             )
                             .maybe_child(nothing_to_ask.then(|| {
-                                empty_hint(&format!("{}\n\nAetherHaven's local catalog is shown above.", catalog_msg))
+                                empty_hint(format!(
+                                    "{}\n\nAetherHaven's local catalog is shown above.",
+                                    catalog_msg
+                                ))
                             })),
                     ),
             ))
